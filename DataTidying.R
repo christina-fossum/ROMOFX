@@ -1,0 +1,28 @@
+library(tidyverse)
+library(dplyr)
+library(writexl)
+library(knitr)
+library(EnvStats)
+load_data <- function(directory_path, pattern) {
+  list_files <- list.files(path = directory_path, pattern = pattern, full.names = TRUE)
+  data_list <- lapply(list_files, function(file) {
+    if (file.info(file)$size == 0) return(NULL)
+    file_data <- tryCatch({
+      read.csv(file, skip = 3) %>% mutate(Comment = "")
+    }, error = function(e) {
+      message("Error reading file: ", file, " - skipping this file.")
+      return(NULL)
+    })
+    return(file_data)
+  })
+  do.call(rbind, data_list[!sapply(data_list, is.null)])
+}
+
+directory_path <- "pico_2025/"
+fuelsfine_df <- load_data(directory_path, "_Surface Fuels - Fine.csv$")
+fuels1000_df <- load_data(directory_path, "_Surface Fuels - 1000Hr.csv$")
+fuelsDL_df <- load_data(directory_path, "_Surface Fuels - Duff_Litter.csv$")
+trees_df <- load_data(directory_path, "_Trees - Individuals \\(metric\\)\\.csv$")
+cover_df <- load_data(directory_path, "_Cover - Points \\(metric\\)\\.csv$")
+seedling_df <- load_data(directory_path, "_Density - Quadrats \\(metric\\)\\.csv$")
+shrub_df <- load_data(directory_path, "_Density - Belts \\(metric\\)\\.csv$")
