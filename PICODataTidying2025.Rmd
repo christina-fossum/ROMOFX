@@ -1,0 +1,144 @@
+---
+title: "DataTidying"
+author: "Christina Fossum"
+date: "2025-10-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Below, Load and save dataframes for:
+(1) cover data
+(2) Shrub data
+(3) Seedling data
+(4) Tree Data
+(5) Tree Report
+(6) Fuels report
+```{r}
+
+
+
+library(tidyverse)
+library(dplyr)
+library(writexl)
+library(knitr)
+library(EnvStats)
+
+# Header loading function
+load_headers <- function(directory_path, pattern) {
+  list_files <- list.files(path = directory_path, pattern = pattern, full.names = TRUE)
+  data_list <- lapply(list_files, function(file) {
+    file_data <- read.csv(file) %>% select(1:10) %>% filter(Visited == "True")
+    file_data <- file_data %>% mutate(Comment = "")
+  })
+  return(do.call(rbind, data_list))
+}
+
+load_data <- function(directory_path, pattern) {
+  list_files <- list.files(path = directory_path, pattern = pattern, full.names = TRUE)
+  data_list <- lapply(list_files, function(file) {
+    if (file.info(file)$size == 0) return(NULL)
+    file_data <- tryCatch({
+      read.csv(file, skip = 3) %>% mutate(Comment = "")
+    }, error = function(e) {
+      message("Error reading file: ", file, " - skipping this file.")
+      return(NULL)
+    })
+    return(file_data)
+  })
+  do.call(rbind, data_list[!sapply(data_list, is.null)])
+}
+
+
+# 1. Cover Data
+
+directory_path <- "WestSideData/pico_2025/" 
+cover_df <- load_data(directory_path, "_Cover - Points \\(metric\\)\\.csv$")
+cover_headers <-load_headers(directory_path, "_Cover - Points \\(metric\\)\\.csv$")
+
+directory_path2 <- "WestSideData/pico_old/"
+cover_df2 <- load_data(directory_path2, "_Cover - Points \\(metric\\)\\.csv$")
+cover_headers2 <-load_headers(directory_path2, "_Cover - Points \\(metric\\)\\.csv$")
+
+cover1 <- left_join(x = cover_df, y = cover_headers, by = c("MacroPlot.Name", "Sample.Event.Date"))
+cover2 <- left_join(x = cover_df2, y = cover_headers2, by = c("MacroPlot.Name", "Sample.Event.Date"))
+cover <- rbind(cover1, cover2)
+
+write.csv(cover, "WestSideData/DATA_KEEP/ROMO_PICO_CoverData.csv")
+
+##############################
+
+# 2. Shrub Data
+shrub_df <- load_data(directory_path, "_Density - Belts \\(metric\\)\\.csv$")
+shrub_headers <-load_headers(directory_path, "_Density - Belts \\(metric\\)\\.csv$")
+shrub_df2 <- load_data(directory_path2, "_Density - Belts \\(metric\\)\\.csv$")
+shrub_headers2 <-load_headers(directory_path2, "_Density - Belts \\(metric\\)\\.csv$")
+
+shrub1 <- left_join(x = shrub_df, y = shrub_headers, by = c("MacroPlot.Name", "Sample.Event.Date"))
+shrub2 <- left_join(x = shrub_df2, y = shrub_headers2, by = c("MacroPlot.Name", "Sample.Event.Date"))
+shrub <- rbind(shrub1, shrub2)
+
+shrub <- rbind(shrub_df, shrub_df2)
+write.csv(shrub, "WestSideData/DATA_KEEP/ROMO_PICO_ShrubData.csv")
+
+######################################################################
+
+ # 3. Seedling Data
+seedling_df <- load_data(directory_path, "_Density - Quadrats \\(metric\\)\\.csv$")
+seedling_headers <- load_headers(directory_path, "_Density - Quadrats \\(metric\\)\\.csv$")
+seedling_df2 <- load_data(directory_path2, "_Density - Quadrats \\(metric\\)\\.csv$")
+seedling_headers2 <- load_headers(directory_path2, "_Density - Quadrats \\(metric\\)\\.csv$")
+
+seedling1 <- left_join(x = seedling_df, y = seedling_headers, by = c("MacroPlot.Name", "Sample.Event.Date"))
+seedling2 <- left_join(x = seedling_df2, y = seedling_headers2, by = c("MacroPlot.Name", "Sample.Event.Date"))
+seedling <- rbind(seedling1, seedling2)
+write.csv(seedling, "WestSideData/DATA_KEEP/ROMO_PICO_SeedlingData.csv")
+
+###################################################################################
+
+# 4. Tree Data
+trees_df <- load_data(directory_path, "_Trees - Individuals \\(metric\\)\\.csv$")
+
+list <- list.files(path = directory_path, pattern = "_Trees - Individuals \\(metric\\)\\.csv$", full.names = TRUE)
+trees_headers <- lapply(list, function(file) read.csv(file, nrows = 1))
+trees_headers <- do.call(rbind, trees_headers)
+
+trees_df2 <- load_data(directory_path2, "_Trees - Individuals \\(metric\\)\\.csv$")
+list2 <- list.files(path = directory_path2, pattern = "_Trees - Individuals \\(metric\\)\\.csv$", full.names = TRUE)
+trees_headers2 <- lapply(list2, function(file) read.csv(file, nrows = 1))
+trees_headers2 <- do.call(rbind, trees_headers2)
+
+trees1 <- left_join(x = trees_df, y = trees_headers, by = c("MacroPlot.Name", "Sample.Event.Date"))
+trees2 <- left_join(x = trees_df2, y = trees_headers2, by = c("MacroPlot.Name", "Sample.Event.Date"))
+trees <- rbind(trees1, trees2)
+write.csv(trees, "WestSideData/DATA_KEEP/ROMO_PICO_TreeData.csv")
+
+##################################################################################
+
+ # 5. Fuels Report
+fuels <- read.csv("WestSideData/Report_SurfaceFuels_E.csv", skip = 2)
+write.csv(fuels, "WestSideData/DATA_KEEP/ROMO_PICO_FuelsReport.csv")
+
+ # 6. Tree Report
+trees <- read.csv("WestSideData/Report_TreesbySpecies_E.csv", skip = 2)
+write.csv(trees, "WestSideData/DATA_KEEP/ROMO_PICO_TreesReport.csv")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
