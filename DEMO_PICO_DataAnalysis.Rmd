@@ -9,22 +9,90 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+10/22/2025
+Edited by: Christina Fossum
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+The goal here is to walk through some basic steps for data tidying, analysis, and plotting.
+For your analyses, please don't edit this DEMO script, but feel free to copy/paste anything in this into your own analysis script(s)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+I will be using the ROMO PICO overstory tree data for this demo but everything should be adaptable to explore the other PICO datasets 
 
-```{r cars}
-summary(cars)
+# 1. Data Tidying
+This is usually the most time consuming and important step of analyzing data in R. I like to do most of this using the 'dplyr' package/'tidyverse' but most can also be done in Base R. If there is a particular transformation or re-structuring of the data that you are trying to accomplish but just can't figure it out, ChatGPT is really helpful for this
+
+```{r}
+#Load Packages
+library(tidyverse)
+library(dplyr)
+library(stringr)
+
+# Load Data
+TreeData <- read.csv("PICO_Data/ROMO_PICO_TreeData.csv")
+TreeReport <- read.csv("PICO_Data/ROMO_PICO_TreesReport.csv")
+
+## 1. Tidying 'TreeData': remove unnecessary columns, rename variables, create other useful metrics
+
+# Remove unnecessary columns: (use 'select' to only keep columns of interest). *Tip: enter 'print(colnames(TreeData))' into console to view column names without having to open the dataframe*
+TreeData <- TreeData %>% select(MacroPlot.Name, Sample.Event.Date, Quarter, Tag.Num., Species, Status, Crown.Class, DBH, Height, 
+                                Live.Crown.Base.Ht., UV3, Damage.1, Damage.2, Damage.3, Damage.4, Damage.5, Char.Ht., Scorch.Ht.,
+                                Crown.Scorch.., Plot.Area, Snag.Plot.Area, Break.Pnt..Dia., Comment.y)
+
+# Change 'MacroPlot.Name' to 'PlotID' and re-format 'FPICO1T08:09' naming convention to be more streamlined
+TreeData <- TreeData %>% rename(PlotID = MacroPlot.Name) %>%  mutate(PlotID = str_replace(PlotID, "^F", ""),  
+    PlotID = str_replace(PlotID, "1T\\d{2}:(\\d{2})", "_\\1"))
+
+# Add in a column for Treatment Status 
+#First, create a new dataframe with the treatment statuses 
+StatusTable <- TreeData %>% select(PlotID, Sample.Event.Date) %>% distinct() %>% arrange(PlotID)
+StatusTable <- StatusTable %>% mutate(MonStatus = c("02Year05", "00Pre", "01Year01", "01Year02", "01Year05", 
+                                                    "02Year05", "00Pre", "01Year01", "01Year02", "01Year05", 
+                                                    "02Year05", "00Pre", "01Year01", "01Year02", "01Year05", 
+                                                    "01Year05", "00Pre", "02Year05", "00Pre", "01Year01", "01Year02", "01Year05", 
+                                                    "01Year05", "00Pre", "01Year05", "00Pre", "01Year05", "00Pre", "01Year05", "00Pre", 
+                                                    "01Year05", "00Pre", "01Year05", "00Pre", "01Year05", "00Pre", "01Year05", "00Pre",
+                                                    "01Year05", "00Pre"))
+TreeData <- left_join(StatusTable, TreeData)
+
+# Add a column for whether plot burned in East Troublesome
+TreeData <- TreeData %>% mutate(Burned2020 = case_when(PlotID == "PICO_08" & MonStatus == "02Year05" ~ "no",
+                                                       PlotID == "PICO_09" & MonStatus == "02Year05" ~ "no",
+                                                       PlotID == "PICO_10" & MonStatus == "02Year05" ~ "yes",
+                                                       PlotID == "PICO_11" & MonStatus == "01Year05" ~ "yes",
+                                                       PlotID == "PICO_12" & MonStatus == "02Year05" ~ "yes",
+                                                       PlotID == "PICO_13" & MonStatus == "01Year05" ~ "yes",
+                                                       PlotID == "PICO_14" & MonStatus == "01Year05" ~ "yes",
+                                                       PlotID == "PICO_15" & MonStatus == "01Year05" ~ "no",
+                                                       PlotID == "PICO_16" & MonStatus == "01Year05" ~ "yes",
+                                                       PlotID == "PICO_19" & MonStatus == "01Year05" ~ "no",
+                                                       PlotID == "PICO_20" & MonStatus == "01Year05" ~ "yes",
+                                                       PlotID == "PICO_21" & MonStatus == "01Year05" ~ "no",
+                                                       PlotID == "PICO_24" & MonStatus == "01Year05" ~ "no",
+                                                       PlotID == "PICO_24" & MonStatus == "01Year05" ~ "no", .default = NA))
+
+
+# to be continued...
+
+
+
+
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+# Data Analysis 
+to be continued...
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+# Plotting
+
+```{r}
+
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+
+
