@@ -70,10 +70,84 @@ TreeData <- TreeData %>% mutate(Burned2020 = case_when(PlotID == "PICO_08" & Mon
                                                        PlotID == "PICO_24" & MonStatus == "01Year05" ~ "no", .default = NA))
 
 
+
+
+
+# to be continued...
+
+## 2. Tidying 'TreeReport' 
+
+# Change 'MacroPlot.Name' to 'PlotID' and re-format 'FPICO1T08:09' naming convention to be more streamlined
+TreeReport <- TreeReport %>% rename(PlotID = Macroplot) %>%  mutate(PlotID = str_replace(PlotID, "^F", ""),  
+    PlotID = str_replace(PlotID, "1T\\d{2}:(\\d{2})", "_\\1"))
+
+# Add a column for whether plot burned in East Troublesome
+TreeReport <- TreeReport %>% mutate(Burned2020 = case_when(PlotID == "PICO_08" & MonStatus == "02PostBurnYear05" ~ "no",
+                                                       PlotID == "PICO_09" & MonStatus == "02PostBurnYear05" ~ "no",
+                                                       PlotID == "PICO_10" & MonStatus == "02PostBurnYear05" ~ "yes",
+                                                       PlotID == "PICO_11" & MonStatus == "01PostBurnYear05" ~ "yes",
+                                                       PlotID == "PICO_12" & MonStatus == "02PostBurnYear05" ~ "yes",
+                                                       PlotID == "PICO_13" & MonStatus == "01PostBurnYear05" ~ "yes",
+                                                       PlotID == "PICO_14" & MonStatus == "01PostBurnYear05" ~ "yes",
+                                                       PlotID == "PICO_15" & MonStatus == "01PostBurnYear05" ~ "no",
+                                                       PlotID == "PICO_16" & MonStatus == "01PostBurnYear05" ~ "yes",
+                                                       PlotID == "PICO_19" & MonStatus == "01PostBurnYear05" ~ "no",
+                                                       PlotID == "PICO_20" & MonStatus == "01PostBurnYear05" ~ "yes",
+                                                       PlotID == "PICO_21" & MonStatus == "01PostBurnYear05" ~ "no",
+                                                       PlotID == "PICO_24" & MonStatus == "01PostBurnYear05" ~ "no",
+                                                       PlotID == "PICO_24" & MonStatus == "01PostBurnYear05" ~ "no", .default = NA))
+
+# Delete unnecessary Columns / rename/reformat
+TreeReport <- TreeReport %>% select(PlotID, MonStatus, Species, SciName, Individuals, Snag, Total, BA, LiCrBHt, Height, QMD, CrScPct, 
+                                    ScorchHt, CharHt, Burned2020)
+TreeReport <- TreeReport %>% mutate(Total2 = Snag + Individuals)
+TreeReport <- TreeReport %>% rename(LiveTreesPerAcre = "Individuals", SnagsPerAcre = "Snag", TotalTreesPerAcre = "Total2")
+
+
 # to be continued...
 
 
 
+```
+
+
+
+
+
+# Plotting
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+
+# Going to start with 'TreeReport' data. 
+# 1. filter data so we are just looking at 2025
+tr25 <- TreeReport %>% filter(Burned2020 == "no" | Burned2020 == "yes")
+
+# 2. summarize tree species
+tr25 <- tr25 %>% group_by(PlotID, MonStatus, Burned2020) %>% summarise(LiveTreesPerAcre = sum(LiveTreesPerAcre),
+                                                                        SnagsPerAcre = sum(SnagsPerAcre),
+                                                                        TotalTreesPerAcre = sum(TotalTreesPerAcre))
+
+
+
+#Plot difference in trees / acre between the plots that burned in 2020 and those that did not
+p1 <- ggplot(tr25, aes(x = Burned2020, y = LiveTreesPerAcre, fill = Burned2020)) + geom_boxplot() + 
+  labs(title = "Live Trees Per Acre", x = "Burned in East Troublesome 2020", y = "Trees / Acre") + theme_minimal() + 
+  theme(legend.position = "none")
+
+p2<- ggplot(tr25, aes(x = Burned2020, y = SnagsPerAcre, fill = Burned2020)) + geom_boxplot() + 
+  labs(title = "Snags Per Acre", x = "Burned in East Troublesome 2020", y = "Trees / Acre") + theme_minimal() + 
+  theme(legend.position = "none")
+
+p3<- ggplot(tr25, aes(x = Burned2020, y = TotalTreesPerAcre, fill = Burned2020)) + geom_boxplot() + 
+  labs(title = "Total Overstory Trees Per Acre", x = "Burned in East Troublesome 2020", y = "Trees / Acre") + theme_minimal() + 
+  theme(legend.position = "none")
+
+
+#combine 3 plots into single figure
+ggarrange(p1, p2, p3, nrow=1)
 
 
 ```
@@ -83,12 +157,24 @@ TreeData <- TreeData %>% mutate(Burned2020 = case_when(PlotID == "PICO_08" & Mon
 to be continued...
 
 
-# Plotting
-
 ```{r}
+
+#Running t-tests on the data we just plotted
+tr25_burned <- tr25 %>% filter(Burned2020 == "yes")
+tr25_unburned <- tr25 %>% filter(Burned2020 == "no")
+
+#t.test on Snags per acre between burned vs. unburned
+t.test(tr25_burned$SnagsPerAcre, tr25_unburned$SnagsPerAcre)
+
+#t.test on live trees/acre between burned vs. unburned
+t.test(tr25_burned$LiveTreesPerAcre, tr25_unburned$LiveTreesPerAcre)
+
+
 
 
 ```
+
+
 
 
 
