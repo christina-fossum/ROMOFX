@@ -1,8 +1,0 @@
-Report Date,MacroPlot Name,Sample Event Date,Visited,Num. Transects,1-hr Tran. Len.,10-hr Tran. Len.,100-hr Tran. Len.,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
-2025/10/21,FPICO1T08:08,2003/08/12,True,4,6,6,12,,,,,,,,,,
-
-Report Date,MacroPlot Name,Sample Event Date,Transect,Azimuth,Slope,1 Hr Count,10 Hr Count,100 Hr Count,Comment,FWDFuConSt
-2025/10/21,FPICO1T08:08,2003/08/12,1,346,5,1,0,0,From FMH DFTRANS 1057,Default
-2025/10/21,FPICO1T08:08,2003/08/12,2,142,1,6,2,2,From FMH DFTRANS 1057,Default
-2025/10/21,FPICO1T08:08,2003/08/12,3,337,5,2,1,0,From FMH DFTRANS 1057,Default
-2025/10/21,FPICO1T08:08,2003/08/12,4,24,10,6,0,0,From FMH DFTRANS 1057,Default
