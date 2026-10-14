@@ -1,0 +1,14 @@
+Densities = per acre | BA = sq. ft. / acre | Heights = feet | QMD = inches
+
+Macroplot,MonStatusOrd,MonStatus,Species,SciName,CommName,Individuals,Sapling,Seedling,Snag,Total,BA,LiCrBHt,Height,QMD,CrFuBHt,CrScPct,ScorchHt,CharHt,LiveSeedling,DeadSeedling,LiveSapling,DeadSapling,BASapling
+"TM_01",1,"00PreThin01","PICO","Pinus contorta","lodgepole pine, scrub pine, shore pine, tamarack pine",113.820315661675,,,12.6467017401862,113.820315661675,30.8599138044444,9.8424,44.8376,7.05056503023221,,,,,,,,,
+"TM_01",1,"00PreThin01","POTR5","Populus tremuloides","quaking aspen",0,,,12.6467017401862,0,0,,,,,,,,,,,,
+"TM_01",1,"00PreThin01","PSME","Pseudotsuga menziesii","douglas fir, douglas spruce, Douglas-fir, oregon pine, red fir",151.760420882234,,,12.6467017401862,151.760420882234,23.8811996406315,2.29656,27.66808,5.37137247792406,,,,,,,,,
+"TM_02",1,"00PreThin01","PICO","Pinus contorta","lodgepole pine, scrub pine, shore pine, tamarack pine",303.520841764468,,,25.2934034803723,303.520841764468,72.5826258928287,15.485376,36.351264,6.62153288348671,,,,,,,,,
+"TM_02",1,"00PreThin01","PSME","Pseudotsuga menziesii","douglas fir, douglas spruce, Douglas-fir, oregon pine, red fir",164.40712262242,,,25.2934034803723,164.40712262242,38.019847450864,4.86652,35.39163,6.77738855561823,,,,,,,,,
+"TM_03",1,"00PreThin01","PICO","Pinus contorta","lodgepole pine, scrub pine, shore pine, tamarack pine",379.401052205585,,,164.40712262242,379.401052205585,55.658223015459,14.95498,37.34644,5.18623108553536,,,,,,,,,
+"TM_03",1,"00PreThin01","PIPO","Pinus ponderosa","blackjack pine, bull pine, pinabete, ponderosa pine, rock pine, western yellow pine",12.6467017401862,,,0,12.6467017401862,0.84686697447012,,,3.50393,,,,,,,,,
+"TM_03",1,"00PreThin01","PSME","Pseudotsuga menziesii","douglas fir, douglas spruce, Douglas-fir, oregon pine, red fir",265.580736543909,,,37.9401052205585,265.580736543909,47.1313919736852,11.19573,36.78597,5.70418114575198,,,,,,,,,
+"TM_04",1,"00PreThin01","PICO","Pinus contorta","lodgepole pine, scrub pine, shore pine, tamarack pine",796.742209631728,,,202.347227842979,796.742209631728,119.106317843425,26.2636673684211,43.3583621052632,5.23534067732972,,,,,,,,,
+"TM_04",1,"00PreThin01","POTR5","Populus tremuloides","quaking aspen",50.5868069607446,,,75.880210441117,50.5868069607446,12.9322285525731,34.61244,42.2403,6.84627773003513,,,,,,,,,
+"TM_04",1,"00PreThin01","PSME","Pseudotsuga menziesii","douglas fir, douglas spruce, Douglas-fir, oregon pine, red fir",63.2335087009308,,,12.6467017401862,63.2335087009308,8.82191409309777,23.62176,47.5716,5.0575971410661,,,,,,,,,

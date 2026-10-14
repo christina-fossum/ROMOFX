@@ -1,0 +1,262 @@
+---
+title: "AR25_PICO"
+author: "Christina Fossum"
+date: "2025-11-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This file goes through all the processing and analysis of the PICO (2020 East Troublesome) data for the 2026 Annual Report. 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#Step 1: Tidy the raw data exports from FFI and save as individual data frames for each protocol. 
+*Note: For PICO 08, 09, 10, and 12, there are multiple reads prior to the one we did this summer, so I only kept the most recent previous read. 
+
+
+Data tidying/formatting. Metadata is "Plot" i.e. PICO_09, "Status" i.e. Pre or Post, and "Burned2020" i.e. yes or no
+  1. Fuels Report
+  2. Tree report
+  
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(stringr)
+library(readr)
+
+# Fuel Report
+fuels_report <- read.csv("PICO/Report_SurfaceFuels_E.csv", skip = 2)
+
+fuels_report <- fuels_report %>% slice(c(5:6, 11:12, 17:20, 24:43)) %>% select(-c(2, 10:46, 54)) %>% 
+  mutate(Plot = str_replace(Macroplot, "^F([A-Z]+)\\d*T\\d+:(\\d+)$", "\\1_\\2"),Plot = str_replace(Plot, "_(\\d)$", "_0\\1")) %>% 
+  select(-Macroplot) %>% mutate(Status = rep(c("PreBurn", "PostBurn"), length.out = n())) %>% 
+  select(-MonStatus) %>% mutate(Burned2020 = case_when(Plot == "PICO_08" ~ "no", Plot == "PICO_09" ~ "no",Plot == "PICO_10" ~ "yes",Plot == "PICO_11" ~ "yes",
+      Plot == "PICO_12" ~ "yes",Plot == "PICO_13" ~ "yes",Plot == "PICO_14" ~ "yes",Plot == "PICO_15" ~ "no",Plot == "PICO_16" ~ "yes",Plot == "PICO_19" ~ "no", Plot == "PICO_20" ~ "yes",Plot == "PICO_21" ~ "no",Plot == "PICO_24" ~ "no",Plot == "PICO_25" ~ "no",TRUE ~ NA_character_)) %>% 
+  rename(ThoHr_Snd = X.3_Snd,ThoHr_Rot = X.3_Rot) %>%  select(Plot, Status, Burned2020, everything())
+
+write.csv(fuels_report, "2025 Annual Report Data/fuels_report.csv", row.names = FALSE)
+
+
+# Seedling Report
+seedling_report <- read.csv("PICO/Report_DensityQuadrats_E.csv", skip = 2)
+seedling_report <- seedling_report %>% slice(c(14:19, 33:39, 57:66, 76:123)) %>% 
+  mutate(Plot = str_replace(Macroplot, "^F([A-Z]+)\\d*T\\d+:(\\d+)$", "\\1_\\2")) %>% select(-Macroplot) %>% group_by(Plot) %>% 
+  mutate( Status = if_else( MonStatusOrd == max(MonStatusOrd, na.rm = TRUE),"PostBurn","PreBurn")) %>% ungroup()
+seedling_report <- seedling_report %>% mutate(Burned2020 = case_when(Plot == "PICO_08" ~ "no", Plot == "PICO_09" ~ "no",Plot == "PICO_10"  ~ "yes", Plot == "PICO_11"  ~ "yes",Plot == "PICO_12"  ~ "yes",Plot == "PICO_13" ~ "yes",Plot == "PICO_14"  ~ "yes",Plot == "PICO_15"  ~ "no", Plot== "PICO_16"  ~ "yes",Plot == "PICO_19"  ~ "no",Plot == "PICO_20"  ~ "yes",Plot == "PICO_21" ~ "no",Plot == "PICO_24" ~ "no",Plot == "PICO_25" ~ "no", .default = NA))
+seedling_report <- seedling_report %>% select(-MonStatusOrd, -MonStatus, -SizeCl, -AgeCl) %>% select(Plot, Status, Burned2020, everything())
+
+write.csv(seedling_report, "2025 Annual Report Data/seedling_report.csv")
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Data Functions for loading raw FFI output data
+# Header loading function
+load_headers <- function(directory_path, pattern) {
+  list_files <- list.files(path = directory_path, pattern = pattern, full.names = TRUE)
+  data_list <- lapply(list_files, function(file) {
+    file_data <- read.csv(file) %>% select(1:10) %>% filter(Visited == "True")
+    file_data <- file_data %>% mutate(Comment = "")
+  })
+  return(do.call(rbind, data_list))
+}
+
+load_data <- function(directory_path, pattern) {
+  list_files <- list.files(path = directory_path, pattern = pattern, full.names = TRUE)
+  data_list <- lapply(list_files, function(file) {
+    if (file.info(file)$size == 0) return(NULL)
+    file_data <- tryCatch({
+      read.csv(file, skip = 3) %>% mutate(Comment = "")
+    }, error = function(e) {
+      message("Error reading file: ", file, " - skipping this file.")
+      return(NULL)
+    })
+    return(file_data)
+  })
+  do.call(rbind, data_list[!sapply(data_list, is.null)])
+}
+  
+directory_path <- "PICO/"  
+  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+  # Overstory tree data
+
+trees_df <- load_data(directory_path, "_Trees - Individuals \\(metric\\)\\.csv$")
+list <- list.files(path = directory_path, pattern = "_Trees - Individuals \\(metric\\)\\.csv$", full.names = TRUE) 
+trees_headers <- lapply(list, function(file) read.csv(file, nrows = 1))
+trees_headers <- do.call(rbind, trees_headers)  
+trees_df <- left_join(x = trees_df, y = trees_headers, by = c("MacroPlot.Name", "Sample.Event.Date"))
+
+trees_df <- trees_df %>% select(-c(1, 4, 7, 13, 15:17, 23:27, 31:40))
+trees_df <- trees_df %>%mutate(Plot = str_replace(MacroPlot.Name, "^F([A-Z]+)\\d*T\\d+:(\\d+)$", "\\1_\\2"),
+    Plot = str_replace(Plot, "_(\\d)$", "_0\\1") ) %>%select(-MacroPlot.Name)
+  
+burned_map <- c(
+  "PICO_08" = "no", "PICO_09" = "no", "PICO_10" = "yes", "PICO_11" = "yes",
+  "PICO_12" = "yes", "PICO_13" = "yes", "PICO_14" = "yes", "PICO_15" = "no",
+  "PICO_16" = "yes", "PICO_19" = "no", "PICO_20" = "yes", "PICO_21" = "no",
+  "PICO_24" = "no", "PICO_25" = "no")
+trees_df <- trees_df %>%
+  mutate(Burned2020 = burned_map[Plot])
+trees_df <- trees_df %>%mutate(Status2 = if_else(str_detect(Sample.Event.Date, "2025"),"PostBurn","PreBurn"))
+
+trees_df <- trees_df %>% select(-c(Sample.Event.Date, Break.Pnt..Dia.)) %>%  select(Plot, Status2, Burned2020, Plot.Area, Snag.Plot.Area, everything())
+
+write.csv(trees_df, "2025 Annual Report Data/trees_data.csv")  
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Cover data
+cover_df <- load_data(directory_path, "_Cover - Points \\(metric\\)\\.csv$")
+list <- list.files(path = directory_path, pattern = "_Cover - Points \\(metric\\)\\.csv$", full.names = TRUE)   
+cover_headers <- lapply(list, function(file) read.csv(file, nrows = 1))
+cover_headers <- do.call(rbind, cover_headers)  
+cover_df <- left_join(x = cover_df, y = cover_headers, by = c("MacroPlot.Name", "Sample.Event.Date"))  
+cover_df <- cover_df %>%mutate(Plot = str_replace(MacroPlot.Name, "^F([A-Z]+)\\d*T\\d+:(\\d+)$", "\\1_\\2"),
+    Plot = str_replace(Plot, "_(\\d)$", "_0\\1") ) %>%select(-MacroPlot.Name) 
+cover_df <- cover_df %>%mutate(Burned2020 = burned_map[Plot])  
+cover_df <- cover_df %>%mutate(Status2 = if_else(str_detect(Sample.Event.Date, "2025"),"PostBurn","PreBurn")) 
+cover_df <- cover_df %>% select(-c(1:2, 10:12, 16:26)) %>% select(Plot, Status2, Burned2020, Num..Transects, Tran..Length, Num..Pts..Tran., everything())
+  
+write.csv(cover_df, "2025 Annual Report Data/cover_data.csv")  
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Seedling Data
+seedling_df <- load_data(directory_path, "_Density - Quadrats \\(metric\\)\\.csv$")
+list <- list.files(path = directory_path, pattern = "_Density - Quadrats \\(metric\\)\\.csv$", full.names = TRUE)
+seedling_headers <- lapply(list, function(file) read.csv(file, nrows = 1))
+seedling_headers <- do.call(rbind, seedling_headers)  
+seedling_df <- left_join(x = seedling_df, y = seedling_headers, by = c("MacroPlot.Name", "Sample.Event.Date"))   
+
+seedling_df <- seedling_df %>%mutate(Plot = str_replace(MacroPlot.Name, "^F([A-Z]+)\\d*T\\d+:(\\d+)$", "\\1_\\2"),
+    Plot = str_replace(Plot, "_(\\d)$", "_0\\1") ) %>%select(-MacroPlot.Name) 
+seedling_df <- seedling_df %>%mutate(Burned2020 = burned_map[Plot])  
+seedling_df <- seedling_df %>%mutate(Status2 = if_else(str_detect(Sample.Event.Date, "2025"),"PostBurn","PreBurn")) 
+
+seedling_df <- seedling_df %>% select(-c(1:4, 10:12, 18:22, 24:27)) %>% select(Plot, Status2, Burned2020, Num..Transects, Num..Quad..Tran., Quad..Length, Quad..Width, Quad..Area, everything())
+
+write.csv(seedling_df, "2025 Annual Report Data/seedling_data.csv")
+  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+# Shrub Data
+
+shrub_df <- load_data(directory_path, "_Density - Belts \\(metric\\)\\.csv$")
+list <- list.files(path = directory_path, pattern = "_Density - Belts \\(metric\\)\\.csv$", full.names = TRUE)
+shrub_headers <- lapply(list, function(file) read.csv(file, nrows = 1))
+shrub_headers <- do.call(rbind, shrub_headers)  
+shrub_df <- left_join(x = shrub_df, y = shrub_headers, by = c("MacroPlot.Name", "Sample.Event.Date")) 
+
+shrub_df <- shrub_df %>%mutate(Plot = str_replace(MacroPlot.Name, "^F([A-Z]+)\\d*T\\d+:(\\d+)$", "\\1_\\2"),
+    Plot = str_replace(Plot, "_(\\d)$", "_0\\1") ) %>%select(-MacroPlot.Name) 
+shrub_df <- shrub_df %>%mutate(Burned2020 = burned_map[Plot])  
+shrub_df <- shrub_df %>%mutate(Status2 = if_else(str_detect(Sample.Event.Date, "2025"),"PostBurn","PreBurn")) 
+
+shrub_df <- shrub_df %>% select(-c(1:3, 10:12, 18:27)) %>% select(Plot, Status2, Burned2020, Num..Transects, Num..Subbelts, Tran..Length, Tran..Width, Tran..Area, everything())
+  
+write.csv(shrub_df, "2025 Annual Report Data/shrub_data.csv")  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+  
+  group_by(Plot) %>% 
+  mutate( Status = if_else( MonStatusOrd == max(MonStatusOrd, na.rm = TRUE),"PostBurn","PreBurn")) %>% ungroup()
+  
+  
+  
+
+###COME BACK TO TREE REPORT
+# tree report
+tree_report <- read.csv("PICO/Report_Trees_E.csv", skip = 2)
+treeS_report <- read.csv("PICO/Report_TreesbySpecies_E.csv", skip = 2)
+treeS_report <- treeS_report %>% select(-SciName, -CommName)
+tree_report <- tree_report %>% slice(5:6, 11:12, 17:20, 24:43)
+tree_report <- tree_report %>% mutate(Species = "All")
+tree_report2 <- rbind(tree_report, treeS_report)
+tree_report <- tree_report2 %>% select(-c(4:6, 13:21))
+tree_report <- tree_report %>% rename(Live = Total)
+tree_report <- tree_report %>% mutate(Total = Snag + Live)
+
+tree_report <- tree_report %>% mutate(Macroplot = str_replace(Macroplot, "^F([A-Z]+)\\d*T\\d+:(\\d+)$", "\\1_\\2")) %>% rename(Plot = Macroplot)
+tree_report <- tree_report %>%mutate(Burned2020 = burned_map[Plot])
+
+tree_report <- tree_report %>% mutate(Status = case_when(Plot %in% c("PICO_08", "PICO_10", "PICO_09", "PICO_12") & MonStatusOrd == 16 ~ "PostBurn",
+                                                         Plot %in% c("PICO_11", "PICO_13", "PICO_14","PICO_15", "PICO_16", "PICO_19",
+                                                                    "PICO_20", "PICO_21", "PICO_24", "PICO_25") & MonStatusOrd == 7 ~ "PostBurn", .default = "PreBurn"))
+
+tree_report <- tree_report %>% select(-c(MonStatusOrd, MonStatus)) %>% select(Plot, Status, Burned2020, Species, Live, Snag, Total, everything())
+
+write.csv(tree_report, "2025 Annual Report Data/tree_report.csv")
+
+
+```
+
+
+# Step 2: Tree Analyses
+
+  1. Preliminary plotting of 2025 overstory data
+  2. Statistical Analyses
+  3. Comparisons with pre-burn data
+  4. Tables/Figures/findings for Annual Report
+  
+```{r}
+library(tidyverse)
+library(dplyr)
+
+~~~~~~~~~~~~~
+# 1
+~~~~~~~~~~~~~
+tree_report <- read.csv("2025 Annual Report Data/tree_report.csv")
+tree_df <- read.csv("2025 Annual Report Data/trees_data.csv")
+
+tree_df <- tree_df %>% filter(Status2 == "PostBurn")
+tree_df <- tree_df %>% select(-c(1, 17:19)) %>% mutate(SizeClass = case_when(DBH >= 15 ~ "Overstory",
+                                                                             DBH < 15 ~ "Pole", .default = NA))
+
+
+# DBH distribution by status
+ggplot(tree_df, aes(x = DBH, fill = Burned2020)) + geom_histogram(binwidth = 5, alpha = 0.7, position = "identity") + facet_wrap(~ Plot) + 
+  theme_minimal() + labs(x = "DBH (cm)", y = "Count", title = "DBH Distribution by Plot and Burn Status")
+
+# Overstory vs pole count per plot ***NEED TO GET RID OF NAs
+tree_df %>% group_by(Plot, Burned2020, SizeClass) %>% summarise(Trees = n(), .groups = "drop") %>% ggplot(aes(x = SizeClass, y = Trees, fill = Burned2020)) + geom_col(position = "dodge") + facet_wrap(~ Plot) + theme_minimal() + labs(title = "Number of Overstory vs. Pole Trees per plot")
+
+# Live vs. Dead Counts Per Plot
+tree_df %>% group_by(Plot, Burned2020, Status) %>% summarise(Trees = n(), .groups = "drop") %>% ggplot(aes(x = Status, y = Trees, fill = Burned2020)) + geom_col(position = "dodge") + facet_wrap(~Plot) + theme_minimal()+ labs(title = "Live vs. Dead Trees Per Plot")
+
+# Tree Height Distribution
+tree_df %>% filter(DBH > 15, !is.na(Height)) %>% ggplot(aes(x = Height, fill = Burned2020)) + geom_histogram(binwidth = 2, alpha = 0.7, position = "identity") + facet_wrap(~ Plot) + theme_minimal() + labs(title = "Tree Height Distribution by Plot and Status", x = "Height (m)")
+
+# Canopy Base Height
+ggplot(tree_df, aes(x = Live.Crown.Base.Ht., fill = Burned2020)) + geom_histogram(binwidth = 2, alpha = 0.7) + facet_wrap(~ Plot) + theme_minimal() + labs(title = "Canopy Base Height Distribution by Plot")
+
+# Species Composition
+tree_df %>% group_by(Plot, Burned2020, Species) %>% summarise(Trees = n(), .groups = "drop") %>% ggplot(aes(x = reorder(Species, -Trees), y = Trees, fill = Burned2020)) + geom_col(position = "dodge") + facet_wrap(~Plot) + theme_minimal() + labs(title = "Species Composition by Plot and Status", x = "Species") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Mortality / Fire Effects *GET RID OF NAs
+tree_df %>% group_by(Burned2020, SizeClass) %>% summarise(Trees = n(), Dead = sum(Status =="D"), Mortality = Dead / Trees, .groups = "drop") %>% ggplot(aes(x = SizeClass, y = Mortality, fill = Burned2020)) + geom_col(position = "dodge") + labs(title = "Proportion of Dead Trees by Size Class")
+
+
+ggplot(tree_df, aes(x = Burned2020, y = DBH, fill = Status)) + geom_boxplot() + facet_wrap(~ Plot)+ theme_minimal() + labs(title = "DBH by Species and Status")
+
+###Tree Report
+tree_report <- tree_report %>% filter(Status =="PostBurn")
+tree_report <- tree_report %>% select(-c(1, 3))
+
+#Trees per Acre
+tree_report %>% filter(Species =="All") %>% select(1:6) %>% pivot_longer(cols = -c(Plot, Burned2020, Species), names_to = "TreeClass", values_to = "Area") %>% ggplot(aes(x = TreeClass, y = Area, fill = Burned2020)) + geom_col(position = "dodge") + facet_wrap(~Plot)
+
+#Boxplot of Snag Density
+tree_report %>% filter(Species == "All") %>% ggplot(aes(x = Burned2020, y = Live)) + geom_boxplot()
+
+
+###Based on the above boxplot, doing a plot of snag density based on plot data not report data
+sum1 <- tree_df %>% select(c(1:3, 8, 9, 11))
+sum1 <- na.omit(sum1)
+sum1 <- sum1 %>% group_by(Plot, Burned2020, Status) %>% summarise(Trees = n(), meanDBH = mean(DBH)) %>% ungroup()
+
+ggplot(sum1) + geom_boxplot(aes(x = Status, y = Trees)) + facet_wrap(~Burned2020)
+
+
+
+
+```
+

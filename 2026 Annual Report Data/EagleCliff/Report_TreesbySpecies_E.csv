@@ -1,0 +1,8 @@
+Densities = per acre | BA = sq. ft. / acre | Heights = feet | QMD = inches
+
+Macroplot,MonStatusOrd,MonStatus,Species,SciName,CommName,Individuals,Sapling,Seedling,Snag,Total,BA,LiCrBHt,Height,QMD,CrFuBHt,CrScPct,ScorchHt,CharHt,LiveSeedling,DeadSeedling,LiveSapling,DeadSapling,BASapling
+"EC_01",1,"00Pre","PIPO","Pinus ponderosa","blackjack pine, bull pine, pinabete, ponderosa pine, rock pine, western yellow pine",12.6467017401862,,,0,12.6467017401862,21.171674361753,18.37248,41.33808,17.51965,,,,,,,,,
+"EC_02",1,"00Pre","PIPO","Pinus ponderosa","blackjack pine, bull pine, pinabete, ponderosa pine, rock pine, western yellow pine",12.6467017401862,,,37.9401052205585,12.6467017401862,15.601340283118,22.63752,52.4928,15.03934,,,,,,,,,
+"EC_03",1,"00Pre","PSME","Pseudotsuga menziesii","douglas fir, douglas spruce, Douglas-fir, oregon pine, red fir",12.6467017401862,,,0,12.6467017401862,12.0701797689406,0,41.99424,13.22832,,,,,,,,,
+"EC_05",1,"00Pre","PIPO","Pinus ponderosa","blackjack pine, bull pine, pinabete, ponderosa pine, rock pine, western yellow pine",63.2335087009308,,,12.6467017401862,63.2335087009308,48.5476837058915,5.446128,33.595392,11.8644354467366,,,,,,,,,
+"EC_06",1,"00Pre","PIPO","Pinus ponderosa","blackjack pine, bull pine, pinabete, ponderosa pine, rock pine, western yellow pine",12.6467017401862,,,0,12.6467017401862,19.6765869017113,3.2808,31.1676,16.88973,,,,,,,,,

@@ -1,0 +1,8 @@
+Report Date,MacroPlot Name,Sample Event Date,Visited,Num. Transects,Tran. Length,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
+2026/04/07,FPIPS1T02:02,1999/04/07,True,4,100.000000152,,,,,,,,,,
+
+Report Date,MacroPlot Name,Sample Event Date,Transect,Slope,Log No.,Diameter,Decay Class,CWDFuConSt,Comment
+2026/04/07,FPIPS1T02:02,1999/04/07,1,12,,3.2,3,Default,From FMH DFSOUND 1055
+2026/04/07,FPIPS1T02:02,1999/04/07,1,12,,4.7,3,Default,From FMH DFSOUND 1055
+2026/04/07,FPIPS1T02:02,1999/04/07,1,12,,3.5,4,Default,From FMH DFROTTEN 1056
+2026/04/07,FPIPS1T02:02,1999/04/07,1,12,,4.5,3,Default,From FMH DFSOUND 1055

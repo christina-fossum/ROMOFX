@@ -1,0 +1,8 @@
+Report Date,MacroPlot Name,Sample Event Date,Visited,Num. Transects,1-hr Tran. Len.,10-hr Tran. Len.,100-hr Tran. Len.,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
+2026/04/07,FPIPO1T09:09,2011/08/10,True,4,6,6,12,,,,,,,,,,
+
+Report Date,MacroPlot Name,Sample Event Date,Transect,Azimuth,Slope,1 Hr Count,10 Hr Count,100 Hr Count,Comment,FWDFuConSt
+2026/04/07,FPIPO1T09:09,2011/08/10,1,177,4,1,0,0,,Default
+2026/04/07,FPIPO1T09:09,2011/08/10,2,28,9,2,0,0,,Default
+2026/04/07,FPIPO1T09:09,2011/08/10,3,60,2,7,3,0,,Default
+2026/04/07,FPIPO1T09:09,2011/08/10,4,32,3,2,1,0,,Default

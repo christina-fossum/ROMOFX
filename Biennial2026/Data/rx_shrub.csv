@@ -1,0 +1,35 @@
+"","Plot","Status2","Burn","SpeciesName","Species","hits","PctCover"
+"1","BME_RAP001","PostBurn","Fall24","Purshia tridentata","PUTR2",2,5
+"2","BME_RAP001","PreBurn","Fall24","Chrysothamnus viscidiflorus","CHVIL4",2,5
+"3","BME_RAP001","PreBurn","Fall24","Purshia tridentata","PUTR2",5,12.5
+"4","BME_RAP002","PostBurn","Fall24","Chrysothamnus viscidiflorus","CHVIL4",5,12.5
+"5","BME_RAP002","PostBurn","Fall24","Purshia tridentata","PUTR2",1,2.5
+"6","BME_RAP002","PostBurn","Fall24","Ribes cereum","RICE",1,2.5
+"7","BME_RAP002","PostBurn","Fall24","Rosa woodsii","ROWO",1,2.5
+"8","BME_RAP002","PreBurn","Fall24","Chrysothamnus viscidiflorus","CHVIL4",6,15
+"9","BME_RAP002","PreBurn","Fall24","Purshia tridentata","PUTR2",8,20
+"10","BME_RAP003","PostBurn","Fall24","Purshia tridentata","PUTR2",1,2.5
+"11","BME_RAP003","PreBurn","Fall24","Purshia tridentata","PUTR2",3,7.5
+"12","BME_RAP003","PreBurn","Fall24","Ribes cereum","RICE",3,7.5
+"13","BME_RAP004","PostBurn","Fall24","Ribes cereum","RICE",1,2.5
+"14","BME_RAP004","PreBurn","Fall24","Purshia tridentata","PUTR2",1,2.5
+"15","BME_RAP004","PreBurn","Fall24","Ribes cereum","RICE",4,10
+"16","BME_RAP006","PostBurn","Fall24","Ribes cereum","RICE",1,2.5
+"17","BME_RAP006","PreBurn","Fall24","Ribes cereum","RICE",1,2.5
+"18","BME_RAP009","PreBurn","Fall24","Chrysothamnus viscidiflorus","CHVIL4",1,2.5
+"19","BME_RAP009","PreBurn","Fall24","Purshia tridentata","PUTR2",2,5
+"20","BME_RAP009","PreBurn","Fall24","Ribes cereum","RICE",1,2.5
+"21","BME_RAP010","PostBurn","Fall24","Purshia tridentata","PUTR2",1,2.5
+"22","BME_RAP010","PreBurn","Fall24","Opuntia polyacantha","OPPO",1,2.5
+"23","BME_RAP010","PreBurn","Fall24","Ribes cereum","RICE",1,2.5
+"24","BME_RAP013","PostBurn","Spring25","Purshia tridentata","PUTR2",1,2.5
+"25","BME_RAP013","PreBurn","Spring25","Purshia tridentata","PUTR2",7,17.5
+"26","BME_RAP015","PreBurn","Spring25","Ribes cereum","RICE",2,5
+"27","BME_RAP016","PreBurn","Spring25","Other","DAFR6",1,2.5
+"28","FPIPS1T02:08","PostBurn","Spring25","Other","AMAL2",1,2.5
+"29","FPIPS1T02:08","PostBurn","Spring25","Purshia tridentata","PUTR2",7,17.5
+"30","FPIPS1T02:08","PreBurn","Spring25","Purshia tridentata","PUTR2",7,17.5
+"31","FPIPS1T02:16","PostBurn","Spring25","Purshia tridentata","PUTR2",1,2.5
+"32","FPIPS1T02:16","PreBurn","Spring25","Chrysothamnus viscidiflorus","CHVIL4",2,5
+"33","FPIPS1T02:16","PreBurn","Spring25","Other","ARTRV",2,5
+"34","FPIPS1T02:16","PreBurn","Spring25","Purshia tridentata","PUTR2",5,12.5

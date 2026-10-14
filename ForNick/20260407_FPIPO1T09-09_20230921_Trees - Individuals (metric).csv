@@ -1,0 +1,18 @@
+Report Date,MacroPlot Name,Sample Event Date,Visited,Plot Area,Snag Plot Area,Break Pnt. Dia.,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
+2026/04/07,FPIPO1T09:09,2023/09/21,True,0.1,0.1,,"KFM, TMD",KFM,,,,,NPS\kmarshall,11/7/2023 5:15:04 PM,NPS\kmarshall,11/7/2023 5:15:43 PM
+
+Report Date,MacroPlot Name,Sample Event Date,Subplot Frac.,Quarter,Tag Num.,UV1,Species,Status,Crown Class,DBH,Height,UV2,Live Crown Base Ht.,UV3,Comment,Is Verified,Damage 1,Damage 2,Damage 3,Damage 4,Damage 5,Char Ht.,Scorch Ht.,Crown Scorch %
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,5,,PIPO,L,D,59.5,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,2,,PIPO,L,I,15.5,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,31,,PIPO,L,C,18.6,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,4,,PIPO,L,C,29.1,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,1,,PIPO,L,D,51.5,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,7,,PIPO,L,C,28.6,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,6,,PIPO,L,D,36.9,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,9,,PIPO,L,D,40.4,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,11,,PIPO,L,C,46.8,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,12,,PIPO,L,C,36.9,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,15,,PIPO,L,C,35.5,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,16,,PIPO,L,D,53,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,18,,PIPO,L,D,46.7,,,,,,No,,,,,,,,
+2026/04/07,FPIPO1T09:09,2023/09/21,1,,19,,PIPO,L,C,32.1,,,,,,No,,,,,,,,

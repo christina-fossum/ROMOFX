@@ -1,0 +1,20 @@
+Report Date,MacroPlot Name,Sample Event Date,Visited,Plot Area,Snag Plot Area,Break Pnt. Dia.,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
+2026/04/07,FPIPS1T02:01,1998/07/02,True,0.1,0.1,15,,,,,,,,,,
+
+Report Date,MacroPlot Name,Sample Event Date,Subplot Frac.,Quarter,Tag Num.,UV1,Species,Status,Crown Class,DBH,Height,UV2,Live Crown Base Ht.,UV3,Comment,Is Verified,Damage 1,Damage 2,Damage 3,Damage 4,Damage 5,Char Ht.,Scorch Ht.,Crown Scorch %
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,1,,PIPO,L,X,13.9,7,,, poleq3_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,2,,PIPO,L,X,3.7,3,,, poleq3_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,3,,PIPO,L,X,6.5,5,,, poleq3_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,4,,PIPO,L,X,10.7,6,,, poleq3_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,5,,PIPO,L,X,11.5,6,,, poleq3_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,6,,PIPO,L,X,6.1,5,,, poleq3_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,7,,PIPO,L,X,9.5,5,,, poleq3_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,4,8,,PIPO,L,X,10.7,6,,, poleq4_all,From FMH TREEPOLE 1069,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,1,1,,PIPO,L,C,40.5,,,, overq1_all,FMH TREEOVER 1067,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,2,2,,PIPO,L,D,70.6,,,, overq2_all,FMH TREEOVER 1067,Yes,FIRE,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,3,3,,PIPO,L,I,22.5,,,, overq3_all,FMH TREEOVER 1067,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,4,4,,PIPO,L,I,19,,,, overq4_all,FMH TREEOVER 1067,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,4,5,,PIPO,L,I,19.7,,,, overq4_all,FMH TREEOVER 1067,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,4,6,,PIPO,L,I,16.7,,,, overq4_all,FMH TREEOVER 1067,Yes,CROK,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,4,7,,PIPO,L,I,19.4,,,, overq4_all,FMH TREEOVER 1067,Yes,,,,,,,,
+2026/04/07,FPIPS1T02:01,1998/07/02,1,4,8,,PIPO,L,I,19.1,,,, overq4_all,FMH TREEOVER 1067,Yes,,,,,,,,

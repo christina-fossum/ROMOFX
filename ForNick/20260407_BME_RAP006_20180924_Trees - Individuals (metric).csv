@@ -1,0 +1,10 @@
+Report Date,MacroPlot Name,Sample Event Date,Visited,Plot Area,Snag Plot Area,Break Pnt. Dia.,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
+2026/04/07,BME_RAP006,2018/09/24,True,0.031,0.031,15,CMK DMG,CMK,Azimuth clockwise from 50P-0P,,,,,,,
+
+Report Date,MacroPlot Name,Sample Event Date,Subplot Frac.,Quarter,Tag Num.,UV1,Species,Status,Crown Class,DBH,Height,UV2,Live Crown Base Ht.,UV3,Comment,Is Verified,Damage 1,Damage 2,Damage 3,Damage 4,Damage 5,Char Ht.,Scorch Ht.,Crown Scorch %
+2026/04/07,BME_RAP006,2018/09/24,1,,0,185,PIPO,L,,25.8,,,,,,Yes,UMAN,CROK,,,,,,
+2026/04/07,BME_RAP006,2018/09/24,1,,0,229,PIFL2,D,,23,,,,,,Yes,ABGR,TWIN,UMAN,,,,,
+2026/04/07,BME_RAP006,2018/09/24,1,,0,230,PIFL2,D,,19.2,,,,,,Yes,ABGR,TWIN,UMAN,,,,,
+2026/04/07,BME_RAP006,2018/09/24,1,,0,262,PIFL2,L,,24.7,,,,,,Yes,TWIN,BROK,,,,,,
+2026/04/07,BME_RAP006,2018/09/24,1,,0,10,PIPO,L,,19.3,,,,,,Yes,,,,,,,,
+2026/04/07,BME_RAP006,2018/09/24,1,,0,70,PIPO,L,,35.3,,,,,,Yes,BROK,,,,,,,

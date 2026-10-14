@@ -1,0 +1,5 @@
+Report Date,MacroPlot Name,Sample Event Date,Visited,Num. Transects,Tran. Length,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
+2026/04/07,BME_RAP010,2018/09/25,True,2,50,CMK DMG,CMK,,,,,,,,
+
+Report Date,MacroPlot Name,Sample Event Date,Transect,Slope,Log No.,Diameter,Decay Class,CWDFuConSt,Comment
+2026/04/07,BME_RAP010,2018/09/25,1,20,,10.5,3,Default,

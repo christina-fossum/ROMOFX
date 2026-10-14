@@ -1,0 +1,239 @@
+"","Plot","Status2","Burned2020","Num..Transects","Num..Quad..Tran.","Quad..Length","Quad..Width","Quad..Area","Quadrat","Item.Code","Status","Height","Count","Comment.y"
+"1","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.15,6,"subsampled Q1 and Q2"
+"2","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.3,2,"subsampled Q1 and Q2"
+"3","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.6,9,"subsampled Q1 and Q2"
+"4","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",1,4,"subsampled Q1 and Q2"
+"5","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",2,2,"subsampled Q1 and Q2"
+"6","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",3,1,"subsampled Q1 and Q2"
+"7","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.15,4,"subsampled Q1 and Q2"
+"8","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.3,2,"subsampled Q1 and Q2"
+"9","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",1,1,"subsampled Q1 and Q2"
+"10","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",0.15,4,"subsampled Q1 and Q2"
+"11","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",0.3,4,"subsampled Q1 and Q2"
+"12","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",0.6,3,"subsampled Q1 and Q2"
+"13","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",1,3,"subsampled Q1 and Q2"
+"14","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",2,1,"subsampled Q1 and Q2"
+"15","PICO_08","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",3,1,"subsampled Q1 and Q2"
+"16","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.15,1,"subsampled Q1 and Q2"
+"17","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.3,1,"subsampled Q1 and Q2"
+"18","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",1,1,"subsampled Q1 and Q2"
+"19","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.3,1,"subsampled Q1 and Q2"
+"20","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",0.15,5,"subsampled Q1 and Q2"
+"21","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",0.3,10,"subsampled Q1 and Q2"
+"22","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",0.6,1,"subsampled Q1 and Q2"
+"23","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",1,1,"subsampled Q1 and Q2"
+"24","PICO_08","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",3,1,"subsampled Q1 and Q2"
+"25","PICO_09","PostBurn","no",1,4,10,10,78.5,1,"PICO","L",0.6,2,NA
+"26","PICO_09","PostBurn","no",1,4,10,10,78.5,1,"ABLA","L",0.3,1,NA
+"27","PICO_09","PostBurn","no",1,4,10,10,78.5,2,"PIEN","L",0.3,2,NA
+"28","PICO_09","PostBurn","no",1,4,10,10,78.5,2,"PIEN","L",2,1,NA
+"29","PICO_09","PostBurn","no",1,4,10,10,78.5,2,"ABLA","L",0.3,3,NA
+"30","PICO_09","PostBurn","no",1,4,10,10,78.5,2,"ABLA","L",0.6,1,NA
+"31","PICO_09","PostBurn","no",1,4,10,10,78.5,2,"ABLA","L",3,1,NA
+"32","PICO_09","PostBurn","no",1,4,10,10,78.5,2,"ABLA","L",1,2,NA
+"33","PICO_09","PostBurn","no",1,4,10,10,78.5,2,"ABLA","L",0.15,1,NA
+"34","PICO_09","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",0.3,2,NA
+"35","PICO_09","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",3,2,NA
+"36","PICO_09","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",2,1,NA
+"37","PICO_09","PostBurn","no",1,4,10,10,78.5,4,"PICO","L",0.3,1,NA
+"38","PICO_09","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",0.3,1,NA
+"39","PICO_09","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",0.6,1,NA
+"40","PICO_10","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.6,2,NA
+"41","PICO_10","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.3,1,NA
+"42","PICO_10","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.15,2,NA
+"43","PICO_10","PostBurn","yes",1,4,10,10,78.5,1,"POTR5","L",1,3,NA
+"44","PICO_10","PostBurn","yes",1,4,10,10,78.5,1,"POTR5","L",0.6,3,NA
+"45","PICO_10","PostBurn","yes",1,4,10,10,78.5,1,"POTR5","L",2,1,NA
+"46","PICO_10","PostBurn","yes",1,4,10,10,78.5,2,"POTR5","L",0.6,6,NA
+"47","PICO_10","PostBurn","yes",1,4,10,10,78.5,2,"POTR5","L",1,3,NA
+"48","PICO_10","PostBurn","yes",1,4,10,10,78.5,2,"POTR5","L",0.3,2,NA
+"49","PICO_10","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.6,6,NA
+"50","PICO_10","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.3,7,NA
+"51","PICO_10","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.15,2,NA
+"52","PICO_10","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.3,8,NA
+"53","PICO_10","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.15,2,NA
+"54","PICO_10","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.15,4,NA
+"55","PICO_10","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.3,6,NA
+"56","PICO_11","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.6,2,NA
+"57","PICO_11","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.3,1,NA
+"58","PICO_11","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",1,1,NA
+"59","PICO_12","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.15,1,NA
+"60","PICO_12","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.3,3,NA
+"61","PICO_12","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.6,4,NA
+"62","PICO_12","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.6,2,NA
+"63","PICO_12","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.3,1,NA
+"64","PICO_12","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.6,2,NA
+"65","PICO_12","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.3,2,NA
+"66","PICO_12","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",1,1,NA
+"67","PICO_12","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.3,1,NA
+"68","PICO_12","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.6,4,NA
+"69","PICO_12","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.15,1,NA
+"70","PICO_13","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.6,5,NA
+"71","PICO_13","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",1,1,NA
+"72","PICO_13","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.15,1,NA
+"73","PICO_13","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.3,1,NA
+"74","PICO_13","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.3,1,NA
+"75","PICO_13","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.15,1,NA
+"76","PICO_13","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.6,2,NA
+"77","PICO_13","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.6,4,NA
+"78","PICO_13","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.3,1,NA
+"79","PICO_13","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.6,1,NA
+"80","PICO_13","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",1,1,NA
+"81","PICO_14","PostBurn","yes",1,2,10,10,78.5,1,"PICO","L",0.15,17,NA
+"82","PICO_14","PostBurn","yes",1,2,10,10,78.5,1,"PICO","L",0.3,35,NA
+"83","PICO_14","PostBurn","yes",1,2,10,10,78.5,1,"PICO","L",0.6,45,NA
+"84","PICO_14","PostBurn","yes",1,2,10,10,78.5,1,"PICO","L",1,10,NA
+"85","PICO_14","PostBurn","yes",1,2,10,10,78.5,2,"PICO","L",0.3,33,NA
+"86","PICO_14","PostBurn","yes",1,2,10,10,78.5,2,"PICO","L",0.6,29,NA
+"87","PICO_14","PostBurn","yes",1,2,10,10,78.5,2,"PICO","L",0.15,11,NA
+"88","PICO_14","PostBurn","yes",1,2,10,10,78.5,2,"ABLA","L",0.15,1,NA
+"89","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",2,4,"subsampled Q1 and Q2"
+"90","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.6,7,"subsampled Q1 and Q2"
+"91","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",3,4,"subsampled Q1 and Q2"
+"92","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.6,12,"subsampled Q1 and Q2"
+"93","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",1,3,"subsampled Q1 and Q2"
+"94","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",1,1,"subsampled Q1 and Q2"
+"95","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",1,4,"subsampled Q1 and Q2"
+"96","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.3,6,"subsampled Q1 and Q2"
+"97","PICO_15","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",2,1,"subsampled Q1 and Q2"
+"98","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",3,1,"subsampled Q1 and Q2"
+"99","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.3,2,"subsampled Q1 and Q2"
+"100","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",1,8,"subsampled Q1 and Q2"
+"101","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.6,9,"subsampled Q1 and Q2"
+"102","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.6,3,"subsampled Q1 and Q2"
+"103","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.3,2,"subsampled Q1 and Q2"
+"104","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.15,1,"subsampled Q1 and Q2"
+"105","PICO_15","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",2,1,"subsampled Q1 and Q2"
+"106","PICO_16","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.6,13,NA
+"107","PICO_16","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.3,5,NA
+"108","PICO_16","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",1,6,NA
+"109","PICO_16","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.3,8,NA
+"110","PICO_16","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.6,14,NA
+"111","PICO_16","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",1,3,NA
+"112","PICO_16","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.15,2,NA
+"113","PICO_16","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.3,10,NA
+"114","PICO_16","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.6,16,NA
+"115","PICO_16","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",1,4,NA
+"116","PICO_16","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.3,5,NA
+"117","PICO_16","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.6,4,NA
+"118","PICO_16","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",1,5,NA
+"119","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",0.3,2,"subsampled Q1 and Q2"
+"120","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",1,7,"subsampled Q1 and Q2"
+"121","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.6,10,"subsampled Q1 and Q2"
+"122","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",2,7,"subsampled Q1 and Q2"
+"123","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.6,6,"subsampled Q1 and Q2"
+"124","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",1,7,"subsampled Q1 and Q2"
+"125","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",2,1,"subsampled Q1 and Q2"
+"126","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.15,1,"subsampled Q1 and Q2"
+"127","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.3,7,"subsampled Q1 and Q2"
+"128","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.3,2,"subsampled Q1 and Q2"
+"129","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",0.6,3,"subsampled Q1 and Q2"
+"130","PICO_19","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",3,1,"subsampled Q1 and Q2"
+"131","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.3,4,"subsampled Q1 and Q2"
+"132","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.3,3,"subsampled Q1 and Q2"
+"133","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.6,1,"subsampled Q1 and Q2"
+"134","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",1,1,"subsampled Q1 and Q2"
+"135","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",2,1,"subsampled Q1 and Q2"
+"136","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",0.6,2,"subsampled Q1 and Q2"
+"137","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",0.3,2,"subsampled Q1 and Q2"
+"138","PICO_19","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.15,2,"subsampled Q1 and Q2"
+"139","PICO_20","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.3,2,NA
+"140","PICO_20","PostBurn","yes",1,4,10,10,78.5,1,"PICO","L",0.6,2,NA
+"141","PICO_20","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.15,1,NA
+"142","PICO_20","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.3,3,NA
+"143","PICO_20","PostBurn","yes",1,4,10,10,78.5,2,"PICO","L",0.6,4,NA
+"144","PICO_20","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.3,1,NA
+"145","PICO_20","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",0.6,4,NA
+"146","PICO_20","PostBurn","yes",1,4,10,10,78.5,3,"PICO","L",1,2,NA
+"147","PICO_20","PostBurn","yes",1,4,10,10,78.5,3,"POTR5","L",0.3,1,NA
+"148","PICO_20","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.3,1,NA
+"149","PICO_20","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",0.6,4,NA
+"150","PICO_20","PostBurn","yes",1,4,10,10,78.5,4,"PICO","L",1,2,NA
+"151","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",0.3,1,"subsampled Q1 and Q2"
+"152","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.6,9,"subsampled Q1 and Q2"
+"153","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",1,3,"subsampled Q1 and Q2"
+"154","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.15,2,"subsampled Q1 and Q2"
+"155","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",0.3,16,"subsampled Q1 and Q2"
+"156","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.3,5,"subsampled Q1 and Q2"
+"157","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",1,10,"subsampled Q1 and Q2"
+"158","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.6,6,"subsampled Q1 and Q2"
+"159","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",3,3,"subsampled Q1 and Q2"
+"160","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",0.15,1,"subsampled Q1 and Q2"
+"161","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PICO","L",2,9,"subsampled Q1 and Q2"
+"162","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",2,1,"subsampled Q1 and Q2"
+"163","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PICO","D",2,1,"subsampled Q1 and Q2"
+"164","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",1,2,"subsampled Q1 and Q2"
+"165","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"ABLA","L",3,1,"subsampled Q1 and Q2"
+"166","PICO_21","PostBurn","no",1,2,10,10,78.5,1,"PIEN","L",2,3,"subsampled Q1 and Q2"
+"167","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.15,7,"subsampled Q1 and Q2"
+"168","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.6,4,"subsampled Q1 and Q2"
+"169","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",2,2,"subsampled Q1 and Q2"
+"170","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",1,7,"subsampled Q1 and Q2"
+"171","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",1,1,"subsampled Q1 and Q2"
+"172","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",0.15,2,"subsampled Q1 and Q2"
+"173","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",0.3,14,"subsampled Q1 and Q2"
+"174","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PIEN","L",3,1,"subsampled Q1 and Q2"
+"175","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.3,5,"subsampled Q1 and Q2"
+"176","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.15,2,"subsampled Q1 and Q2"
+"177","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",0.3,1,"subsampled Q1 and Q2"
+"178","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"ABLA","L",1,1,"subsampled Q1 and Q2"
+"179","PICO_21","PostBurn","no",1,2,10,10,78.5,2,"PICO","L",0.6,3,"subsampled Q1 and Q2"
+"180","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"PIEN","L",0.15,2,NA
+"181","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"PICO","L",2,1,NA
+"182","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"PICO","L",0.3,4,NA
+"183","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"PICO","L",0.6,5,NA
+"184","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"PICO","L",0.15,4,NA
+"185","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"PIEN","L",0.3,1,NA
+"186","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"ABLA","L",0.15,1,NA
+"187","PICO_24","PostBurn","no",1,4,10,10,78.5,1,"PICO","L",1,2,NA
+"188","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",0.15,1,NA
+"189","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",1,2,NA
+"190","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",0.6,5,NA
+"191","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",2,1,NA
+"192","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",0.3,3,NA
+"193","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PIEN","L",3,2,NA
+"194","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PIEN","L",2,4,NA
+"195","PICO_24","PostBurn","no",1,4,10,10,78.5,2,"PIEN","L",3,1,NA
+"196","PICO_24","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",0.15,1,NA
+"197","PICO_24","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",0.3,1,NA
+"198","PICO_24","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",0.3,1,NA
+"199","PICO_24","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",0.6,4,NA
+"200","PICO_24","PostBurn","no",1,4,10,10,78.5,3,"PIEN","L",0.3,1,NA
+"201","PICO_24","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",2,1,NA
+"202","PICO_24","PostBurn","no",1,4,10,10,78.5,4,"PICO","L",1,1,NA
+"203","PICO_24","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",0.3,1,NA
+"204","PICO_24","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",2,1,NA
+"205","PICO_24","PostBurn","no",1,4,10,10,78.5,4,"PICO","L",0.15,1,NA
+"206","PICO_24","PostBurn","no",1,4,10,10,78.5,4,"PIEN","L",2,1,NA
+"207","PICO_24","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",1,1,NA
+"208","PICO_24","PostBurn","no",1,4,10,10,78.5,4,"PICO","L",2,1,NA
+"209","PICO_25","PostBurn","no",1,4,10,10,78.5,1,"ABLA","L",0.15,2,NA
+"210","PICO_25","PostBurn","no",1,4,10,10,78.5,1,"PIEN","L",2,1,NA
+"211","PICO_25","PostBurn","no",1,4,10,10,78.5,1,"PIEN","L",1,1,NA
+"212","PICO_25","PostBurn","no",1,4,10,10,78.5,1,"ABLA","L",2,1,NA
+"213","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",0.6,11,NA
+"214","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",1,2,NA
+"215","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"ABLA","L",3,1,NA
+"216","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",0.3,3,NA
+"217","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",2,2,NA
+"218","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"ABLA","L",0.3,1,NA
+"219","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"PICO","L",3,1,NA
+"220","PICO_25","PostBurn","no",1,4,10,10,78.5,2,"PIEN","L",1,1,NA
+"221","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",1,2,NA
+"222","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",0.15,15,NA
+"223","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",0.6,6,NA
+"224","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",0.6,5,NA
+"225","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",0.3,6,NA
+"226","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",0.15,3,NA
+"227","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"PICO","L",0.3,2,NA
+"228","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"ABLA","L",3,1,NA
+"229","PICO_25","PostBurn","no",1,4,10,10,78.5,3,"PIEN","L",0.15,1,NA
+"230","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"PICO","L",1,2,NA
+"231","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",0.15,1,NA
+"232","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"PIEN","L",0.15,1,NA
+"233","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",1,1,NA
+"234","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"PICO","L",0.3,2,NA
+"235","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"PICO","L",0.6,1,NA
+"236","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",2,2,NA
+"237","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",0.3,1,NA
+"238","PICO_25","PostBurn","no",1,4,10,10,78.5,4,"ABLA","L",0.6,1,NA
