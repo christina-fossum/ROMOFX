@@ -222,30 +222,125 @@ library(tidyverse)
 library(ggplot2)
 
 # (1) Read in fuels data
-fuels <- read.csv("Biennial2026/Data//rx_fuels.csv") %>% dplyr::select(-1)
+fuels <- read.csv("Data/rx_fuels.csv") %>% dplyr::select(-1)
 fuels$MonStatus <- factor(fuels$MonStatus, levels = c("PRE", "POST", "01YR01"), ordered = TRUE)
+
+
+fuels <- fuels %>% mutate(Burn = case_when(Burn == "HQ_Fall24" ~ "Fall 2024", Burn == "HQ_Spring25" ~ "Spring 2025",
+                                     Burn == "BM_Fall25" ~ "Fall 2025 Beaver Meadows", Burn ==  "HQ_Fall25" ~ "Fall 2025 HQ"))
+fuels$Burn <- factor(fuels$Burn, levels = c("Fall 2024", "Spring 2025", "Fall 2025 Beaver Meadows", "Fall 2025 HQ"))
+
 
 # (2) Table showing fuel consumption
 tbl <- fuels %>% filter(FuelCategory %in% c("FineWood", "Litter", "Duff", "TotalAll")) %>% filter(MonStatus %in% c("PRE", "POST")) %>%
   pivot_wider(id_cols = c(Macroplot, FuelCategory, Burn), names_from = MonStatus, values_from = value) %>% mutate(Change = POST - PRE, PctChange = round(((POST-PRE)/PRE)*100,1)) %>% group_by(FuelCategory,Burn) %>%summarise(MeanValue = round(mean(PctChange, na.rm=TRUE),1), .groups="drop") %>% pivot_wider(names_from = FuelCategory, values_from = MeanValue)%>% dplyr::select(Burn, FineWood, Litter, Duff, TotalAll) %>% rename(TotalSurfaceFuels = TotalAll, FineWoody = FineWood)
-tbl$Burn <- factor(tbl$Burn, levels = c("HQ_Fall24", "HQ_Spring25", "HQ_Fall25", "BM_Fall25")) 
+
+tbl$Burn <- factor(tbl$Burn, levels = c("Fall 2024", "Spring 2025", "Fall 2025 Beaver Meadows", "Fall 2025 HQ"))
 tbl <- tbl %>% arrange(Burn)
 
+tbl_avg <- tbl %>% summarise(Burn = "Average", across(where(is.numeric), mean, na.rm = TRUE))
+tbl2 <- bind_rows(tbl, tbl_avg)
+tbl2 <- tbl2 %>% mutate(Burn = case_when(Burn == "Fall 2024" ~ "1. Fall 2024", Burn == "Spring 2025" ~ "2. Spring 2025",
+                                         Burn == "Fall 2025 Beaver Meadows" ~ "3. Fall 2025 Beaver Meadows", Burn == "Fall 2025 HQ" ~ "4. Fall 2025 HQ", .default = Burn))
+
 # GT TABLE with simple bold average row + divider
-tbl_gt <- tbl %>% gt() %>% tab_header(title = "Percent Fuel Consumption by Fuel Type") 
+tbl_gt <- tbl2 %>% gt(auto_align = FALSE) %>% tab_header(title = "Percent Fuel Consumption (Pre- vs. Post-Burn)") %>% 
+  tab_style(style = cell_text(weight = "bold"), locations = cells_body(rows = Burn == "Average")) %>%
+  tab_style(style = cell_text(weight = "bold"), locations = cells_column_labels(everything()))
 
 tbl_gt
 
-#*****TO DO: make table look nicer: bold headers, separate burns with a column or something
+##########
+# Calculate stats for plots
+fuels2 <- fuels  %>% filter(FuelCategory %in% c("FineWood", "Duff", "Litter", "TotalAll")) %>% mutate(value = sqrt(value)) %>% pivot_wider(id_cols = c(Macroplot, MonStatus, Burn), names_from = FuelCategory, values_from = value)
+fuels2 <- fuels2 %>% mutate(MonStatus = factor(MonStatus, levels = c("PRE", "POST", "01YR01")))
+fuel_vars <- c("FineWood", "Duff", "Litter", "TotalAll")
 
-# (3) Plot Fuel Loads
+
+#Pairwise comparisons between pre and post
+pairwise_results <- map_dfr(fuel_vars, function(var) {
+  m <- lmer(as.formula(paste0(var, " ~ MonStatus*Burn + (1|Macroplot)")), data = fuels2)
+  em <- emmeans(m, pairwise ~ MonStatus | Burn, adjust = "BH")
+  
+  as.data.frame(em$contrasts) %>%
+    mutate(FuelCategory = var) %>%
+    dplyr::select(Burn, FuelCategory, contrast, estimate, SE, df, t.ratio, p.value)
+})
+
+pairwise_results <- pairwise_results %>% mutate(estimate = round(estimate, 2),SE = round(SE, 2),t.ratio = round(t.ratio, 2),p.value = round(p.value, 3))
+
+
+# Plot Fuel Loads
 fuelplot <- fuels %>% filter(FuelCategory %in% c("FineWood", "Litter", "Duff", "TotalAll")) %>% group_by(MonStatus, Burn, FuelCategory) %>% 
   summarise(mean = round(mean(value), 1), sd = round(sd(value), 1), .groups = "drop")
-fuelplot$Burn <- factor(fuelplot$Burn, levels = c("HQ_Fall24", "HQ_Spring25", "BM_Fall25", "HQ_Fall25"))
+fuelplot$Burn <- factor(fuelplot$Burn, levels = c("Fall 2024", "Spring 2025", "Fall 2025 Beaver Meadows", "Fall 2025 HQ"))
 fuelplot <- fuelplot %>% arrange(Burn)
+fuelplot <- fuelplot %>% mutate(FuelCategory = case_when(FuelCategory == "FineWood" ~ "Fine Woody", FuelCategory == "TotalAll" ~ "Total", .default = FuelCategory))
+fuelplot$FuelCategory <- factor(fuelplot$FuelCategory, levels = c("Fine Woody", "Litter", "Duff", "Total"))
 
-ggplot(fuelplot, aes(x = FuelCategory, y = mean, fill = MonStatus)) + geom_col(position = position_dodge(width = 0.9))+ geom_errorbar(aes(ymin = pmax(mean - sd,0), ymax = mean + sd),position = position_dodge(width = 0.9), width = 0.2) + facet_wrap(~Burn)+ scale_fill_manual(values=nps_pal)+ theme_nps() + labs(title="Effects of RX Burn on Surface Fuels", y="Avg. Fuel Load (tons/acre)", x = "Fuel Category", fill = "Monitoring Status") +theme(axis.text.x=element_text(angle=45,hjust=1))
+# plot1: pre vs post
+plot1 <- fuelplot %>% filter(MonStatus %in% c("PRE", "POST"))
+
+ggplot(plot1, aes(x = FuelCategory, y = mean, fill = MonStatus)) + geom_col(position = position_dodge(width = 0.9))+ geom_errorbar(aes(ymin = pmax(mean - sd,0), ymax = mean + sd),position = position_dodge(width = 0.9), width = 0.2) + facet_wrap(~Burn)+ scale_fill_manual(values=nps_pal)+ theme_nps() + labs(title="Surface Fuel loads pre-burn vs. post-burn", y="Avg. Fuel Load (tons/acre)", x = "Fuel Category", fill = "Monitoring Status") +theme(axis.text.x=element_text(angle=45,hjust=1))
+
+#need to add significance stars to:
+# Fall24: litter < 0.05, duff < 0.1, total < 0.05
+# Spring25: fine woody < 0.1, litter < 0.05, total < 0.05
+# BM: fine woody < 0.1, litter < 0.05, duff < 0.05, total < 0.05
+# HQ: nothin
+
+#create stars based on p values
+plot1_stats <- pairwise_results %>% filter(contrast == "PRE - POST") %>% dplyr::select(c(1:3, 8))
+sig_df <- plot1_stats %>%mutate(label = case_when(p.value < 0.001 ~ "***",p.value < 0.01  ~ "**",p.value < 0.05  ~ "*",TRUE ~ "")) %>%filter(label != "")
+sig_df <- sig_df %>% mutate(FuelCategory = case_when(FuelCategory == "TotalAll" ~ "Total", .default = FuelCategory))
+#calculate position to place stars on plot
+y_positions <- plot1 %>%group_by(FuelCategory, Burn) %>%summarise(y_pos = max(mean + sd) * 1.1, .groups = "drop")
+sig_df <- left_join(sig_df, y_positions,by = c("FuelCategory", "Burn"))
+
+#Now add this to plot
+ggplot(plot1, aes(x = FuelCategory, y = mean, fill = MonStatus)) + geom_col(position = position_dodge(width = 0.9))+ geom_errorbar(aes(ymin = pmax(mean - sd,0), ymax = mean + sd),position = position_dodge(width = 0.9), width = 0.2) + 
+  facet_wrap(~Burn, labeller = labeller(Burn = function(x) {paste0(match(x, unique(x)), ". ", x)}))+ 
+  scale_fill_manual(values=nps_pal)+ theme_nps() + labs(title="Surface Fuel loads pre-burn vs. post-burn", y="Avg. Fuel Load (tons/acre)", x = "Fuel Category", fill = "Monitoring Status") +theme(axis.text.x=element_text(angle=45,hjust=1)) + 
+  geom_text(data = sig_df, aes(x = FuelCategory, y = y_pos, label = label), inherit.aes = FALSE, size = 6)
+
+#### Now I want to do the same thing but just for the 2 burns that have all 3 time points
+#Plot 2
+plot2 <- fuelplot %>% filter(Burn %in% c("Fall 2024", "Spring 2025"))
+
+plot2_stats <- pairwise_results %>% filter(Burn %in% c("Fall 2024", "Spring 2025"))%>% dplyr::select(c(1:3, 8))
+sig_df2 <- plot2_stats %>%mutate(label = case_when(p.value < 0.001 ~ "***",p.value < 0.01  ~ "**",p.value < 0.05  ~ "*",TRUE ~ "")) %>%filter(label != "")
+sig_df2 <- sig_df2 %>% mutate(FuelCategory = case_when(FuelCategory == "TotalAll" ~ "Total", .default = FuelCategory))
+#calculate position to place stars on plot
+y_positions2 <- plot2 %>%group_by(FuelCategory, Burn) %>%summarise(y_pos = max(mean + sd) * 1.1, .groups = "drop")
+sig_df2 <- left_join(sig_df2, y_positions2,by = c("FuelCategory", "Burn"))
+
+#Now add this to plot
+ggplot(plot2, aes(x = FuelCategory, y = mean, fill = MonStatus)) + geom_col(position = position_dodge(width = 0.9))+ geom_errorbar(aes(ymin = pmax(mean - sd,0), ymax = mean + sd),position = position_dodge(width = 0.9), width = 0.2) + 
+  facet_wrap(~Burn, labeller = labeller(Burn = function(x) {paste0(match(x, unique(x)), ". ", x)}))+ 
+  scale_fill_manual(values=nps_pal)+ theme_nps() + labs(title="Surface Fuel loads pre-burn, post-burn, 1-year post-burn", y="Avg. Fuel Load (tons/acre)", x = "Fuel Category", fill = "Monitoring Status") +theme(axis.text.x=element_text(angle=45,hjust=1)) + 
+  geom_text(data = sig_df2, aes(x = FuelCategory, y = y_pos, label = label), inherit.aes = FALSE, size = 6)
+
+###
+# old stuff below
+
+
+
+
+plot1 <- fuelplot %>% filter(Burn %in% c("Fall 2024", "Spring 2025"))
+plot2 <- fuelplot %>% filter(Burn %in% c("Fall 2025 Beaver Meadows", "Fall 2025 HQ"))
+
+ggplot(plot1, aes(x = FuelCategory, y = mean, fill = MonStatus)) + geom_col(position = position_dodge(width = 0.9))+ geom_errorbar(aes(ymin = pmax(mean - sd,0), ymax = mean + sd),position = position_dodge(width = 0.9), width = 0.2) + facet_wrap(~Burn)+ scale_fill_manual(values=nps_pal)+ theme_nps() + labs(title="Surface Fuel loads Pre, Post, and 1 year-post burn", y="Avg. Fuel Load (tons/acre)", x = "Fuel Category", fill = "Monitoring Status") +theme(axis.text.x=element_text(angle=45,hjust=1))
   
+# Looking at significance from 'pairwise_results' I need to show the following:
+# Fall24: litter - pre:post & pre:yr01. total- pre:post & pre:yr01
+
+
+
+
+
+
+ggplot(plot2, aes(x = FuelCategory, y = mean, fill = MonStatus)) + geom_col(position = position_dodge(width = 0.9))+ geom_errorbar(aes(ymin = pmax(mean - sd,0), ymax = mean + sd),position = position_dodge(width = 0.9), width = 0.2) + facet_wrap(~Burn)+ scale_fill_manual(values=nps_pal)+ theme_nps() + labs(title="Surface Fuel loads Pre and Post-burn", y="Avg. Fuel Load (tons/acre)", x = "Fuel Category", fill = "Monitoring Status") +theme(axis.text.x=element_text(angle=45,hjust=1))
+ 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -254,6 +349,10 @@ ggplot(fuelplot, aes(x = FuelCategory, y = mean, fill = MonStatus)) + geom_col(p
 # Format data for stats: Log-transform, 
 fuels2 <- fuels %>% filter(MonStatus %in% c("PRE", "POST")) %>% filter(FuelCategory %in% c("FineWood", "Duff", "Litter", "TotalAll")) %>% mutate(value = sqrt(value)) %>% pivot_wider(id_cols = c(Macroplot, MonStatus, Burn), names_from = FuelCategory, values_from = value)
 fuels2 <- fuels2 %>% mutate(MonStatus = factor(MonStatus, levels = c("PRE", "POST")))
+fuel_vars <- c("FineWood", "Duff", "Litter", "TotalAll")
+
+fuels2 <- fuels  %>% filter(FuelCategory %in% c("FineWood", "Duff", "Litter", "TotalAll")) %>% mutate(value = sqrt(value)) %>% pivot_wider(id_cols = c(Macroplot, MonStatus, Burn), names_from = FuelCategory, values_from = value)
+fuels2 <- fuels2 %>% mutate(MonStatus = factor(MonStatus, levels = c("PRE", "POST", "01YR01")))
 fuel_vars <- c("FineWood", "Duff", "Litter", "TotalAll")
 
 
@@ -320,37 +419,50 @@ vegan::adonis2(fuels_mat ~ MonStatus, data = fuels_meta, strata = fuels_meta$Mac
 ```{r}
 
 # Read in Cover Data
-cover <- read.csv("Biennial2026/Data/rx_cover.csv")
+cover <- read.csv("Data/rx_cover.csv")
+cover <- cover %>% filter(FuncGroup != "Substrate") %>% mutate(Category = paste(Native, FuncGroup))
+cover <- cover %>% filter(Category != "native Tree")
 
-# Plot of Functional Group Cover
-fgcover <- cover %>% dplyr::select(Plot, Status2, Burn, FuncGroup, Native, HitsPerPlot, FGHits, FGPctCover)
-fgcover <- unique(fgcover)
-fgcover$Status2 <- factor(fgcover$Status2, levels = c("PreBurn", "PostBurn"))
-fgcover$FuncGroup <- as.factor(fgcover$FuncGroup)
-fgcover <- fgcover %>% filter(FuncGroup %in% c("Forb", "Grass", "Shrub"))
 
-ggplot(fgcover %>% dplyr::filter(Burn == "Fall24"), aes(x = FuncGroup, y = FGPctCover, fill = FuncGroup)) + geom_boxplot(alpha = 0.8) + facet_wrap(~Status2) + scale_fill_manual(values=nps_pal) + labs(title = "Understory Cover for Fall 2024 RX Burn", y = "Percent Cover", x = "Functional Group") + theme_nps() + theme(axis.text.x=element_text(angle=45,hjust=1), legend.position = "none")
+ggplot(cover, aes(x = Category, y = PctCover, fill = Status2)) + geom_boxplot() + facet_wrap(~Burn, scales = "free")+ theme_nps() + labs(title = "Understory Community Composition") +scale_fill_manual(values=nps_pal)+  theme(axis.text.x=element_text(angle=-45,hjust=0, vjust = 1))
 
-ggplot(fgcover %>% dplyr::filter(Burn == "Spring25"), aes(x = FuncGroup, y = FGPctCover, fill = FuncGroup)) + geom_boxplot(alpha = 0.8) + facet_wrap(~Status2) + scale_fill_manual(values=nps_pal) + labs(title = "Understory Cover for Spring 2025 RX Burn", y = "Percent Cover", x = "Functional Group") + theme_nps() + theme(axis.text.x=element_text(angle=45,hjust=1), legend.position = "none")
+cover_sum <- cover %>% group_by(Plot, Status2, Burn, Category) %>% mutate(Category_hits = sum(Hits))
+cover_sum <- cover_sum %>% dplyr::select(c(Plot, Status2, Burn, Category_hits, Category)) %>% unique()
+cover_sum <- cover_sum %>% group_by(Status2, Category, Burn) %>% summarise(mean = mean(Category_hits), sd = sd(Category_hits), .groups = "drop")
+cover_sum$Status2 <- factor(cover_sum$Status2, levels = c("PreBurn", "PostBurn"))
 
-# Plot of Non-Native Cover
-native <- cover %>% filter(Native =="non-native")
-native <- native %>% mutate(SpeciesName = case_when(Species == "VETH" ~ "Verbascum thapsus", Species == "BRINI" ~ "Bromus inermis",
-                                                    Species == "LEDE" ~ "Lepidium densiflorum",Species == "LIDAD" ~ "Linaria dalmatica",
-                                                    Species == "TAOF" ~ "Taraxacum officinale", TRUE ~ SpeciesName)) 
-native$Status2 <- factor(native$Status2, levels = c("PreBurn", "PostBurn"))
+ggplot(cover_sum, aes(x = Category, y = mean, fill = Status2)) + geom_col(position = position_dodge(width = 0.9), alpha = 0.8) + facet_wrap(~Burn, scales = "free") + theme_nps() + geom_errorbar(aes(ymin = pmax(mean-sd,0), ymax = mean + sd), position = position_dodge(width = 0.9), width = 0.2) + labs(title = "Understory Community Composition") +scale_fill_manual(values=nps_pal)+  theme(axis.text.x=element_text(angle=-45,hjust=0, vjust = 1))
 
-ggplot(native, aes(x = SpeciesName, y = PctCover, fill = FuncGroup))+ geom_col(aes(y = mean(PctCover)), alpha = 0.8) + facet_wrap(~Status2, scales = "free_x")+ scale_fill_manual(values=nps_pal) + labs(title = "Non-native cover", y = "Percent Cover", x = "Species") + theme_nps() + theme(axis.text.x=element_text(angle=45,hjust=1), legend.position = "none")
 
-# Plot of native species diversity 
-spdiv <- cover %>% filter(Native == "native") %>% filter(FuncGroup %in% c("Grass", "Forb", "Shrub")) %>% filter(PctCover > 5)
-spdiv$Status2 <- factor(spdiv$Status2, levels = c("PreBurn", "PostBurn"))
+# plot 1
+plot1 <- cover %>% group_by(Status2, Species, SpeciesName, FuncGroup, Native, Burn) %>% summarise(mean_pct_cover = mean(PctCover), sd_pct_cover = sd(PctCover), max_pct_cover = max(PctCover), min_pct_cover = min(PctCover), .groups = "drop")
+plot1 <- plot1 %>% filter(mean_pct_cover > 4.99) %>% filter(FuncGroup != "Substrate")
+plot1$Status2 <- factor(plot1$Status2, levels = c("PreBurn", "PostBurn"))
+plot1 <- plot1 %>% filter(max_pct_cover != min_pct_cover)
 
-ggplot(spdiv %>% dplyr::filter(Burn == "Fall24"), aes(x = SpeciesName, y = PctCover, fill = FuncGroup)) + geom_col(aes(y = mean(PctCover)),alpha = 0.8) + facet_wrap(~Status2, scales = "free_x") + scale_fill_manual(values=nps_pal) + labs(title = "Understory Species Diversity for Fall 2024 RX Burn", y = "Percent Cover", x = "Species Name", fill = "Functional Group") + theme_nps() + theme(axis.text.x=element_text(angle=-45,hjust=0, vjust = 1))
 
-ggplot(spdiv %>% dplyr::filter(Burn == "Spring25"), aes(x = SpeciesName, y = PctCover, fill = FuncGroup)) + geom_col(aes(y = mean(PctCover)),alpha = 0.8) + facet_wrap(~Status2, scales = "free_x") + scale_fill_manual(values=nps_pal) + labs(title = "Understory Species Diversity for Spring 2025 RX Burn", y = "Percent Cover", x = "Functional Group", fill = "Functional Group") + theme_nps() + theme(axis.text.x=element_text(angle=-45,hjust=0, vjust = 1))
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ggplot(plot1 %>% filter(Burn == "Fall24"), aes(x = SpeciesName, y = mean_pct_cover, fill = FuncGroup)) + geom_col(alpha = 0.8) + facet_wrap(~Status2, scales = "free_x") +
+  geom_errorbar(aes(ymin = min_pct_cover, ymax = max_pct_cover), width = 0.2)+ 
+  scale_fill_manual(values=nps_pal)+ labs(title = "Understory Species Diversity for Fall 2024 RX Burn", y = "Percent Cover", x = "Species Name", fill = "Functional Group") + theme_nps() + theme(axis.text.x=element_text(angle=-45,hjust=0, vjust = 1))
+
+ggplot(plot1 %>% filter(Burn == "Spring25"), aes(x = SpeciesName, y = mean_pct_cover, fill = FuncGroup)) + geom_col(alpha = 0.8) + facet_wrap(~Status2, scales = "free_x") +
+  geom_errorbar(aes(ymin = min_pct_cover, ymax = max_pct_cover), width = 0.2)+ 
+  scale_fill_manual(values=nps_pal)+ labs(title = "Understory Species Diversity for Spring 2025 RX Burn", y = "Percent Cover", x = "Species Name", fill = "Functional Group") + theme_nps() + theme(axis.text.x=element_text(angle=-45,hjust=0, vjust = 1))
+
+
+#plot 2: combine the two burns
+plot2 <- cover %>% group_by(Status2, Species, SpeciesName, FuncGroup, Native) %>% summarise(mean_pct_cover = mean(PctCover), sd_pct_cover = sd(PctCover), max_pct_cover = max(PctCover), min_pct_cover = min(PctCover), .groups = "drop")
+plot2 <- plot2 %>% filter(mean_pct_cover > 4.99) %>% filter(FuncGroup != "Substrate")
+plot2$Status2 <- factor(plot2$Status2, levels = c("PreBurn", "PostBurn"))
+plot2 <- plot2 %>% filter(max_pct_cover != min_pct_cover)
+
+
+
+ggplot(plot2, aes(x = SpeciesName, y = mean_pct_cover, fill = FuncGroup)) + geom_col(alpha = 0.8) + facet_wrap(~Status2, scales = "free_x") +
+  geom_errorbar(aes(ymin = min_pct_cover, ymax = max_pct_cover), width = 0.2)+ 
+  scale_fill_manual(values=nps_pal)+ labs(title = "Understory Species Diversity for Spring 2025 RX Burn", y = "Percent Cover", x = "Species Name", fill = "Functional Group") + theme_nps() + theme(axis.text.x=element_text(angle=-45,hjust=0, vjust = 1))
+
 
 # Stats
 
@@ -403,40 +515,46 @@ adonis2(dist_matrix ~ Status2, data = shrubs25, permutations = 999)
 3. Trees
 ```{r}
 # Read in data
-trees <- read.csv("Biennial2026/Data/rx_trees.csv")
+trees <- read.csv("Data/rx_trees.csv")
 
 # Filter out post-burn fire effects tree data
-fire <- trees %>% filter(Status2 == "PostBurn") %>% dplyr::select(Plot, Burn, Char.Ht., Scorch.Ht., Crown.Scorch..) %>% pivot_longer(cols = c(Char.Ht., Scorch.Ht., Crown.Scorch..), names_to = "Measurement", values_to = "value")
-fire$Burn <- factor(fire$Burn, levels = c("Fall24", "Spring25", "Fall25"))
+fire <- trees %>% dplyr::select(Plot, Status2, Burn, Live.Crown.Base.Ht., Char.Ht., Scorch.Ht., Crown.Scorch..) %>% pivot_longer(cols = c(Char.Ht., Scorch.Ht., Crown.Scorch.., Live.Crown.Base.Ht.), names_to = "Measurement", values_to = "value")
+fire <- fire %>% mutate(Status2 = case_when(Status2 == "PreBurn" ~ "PRE", Status2 == "PostBurn" ~ "POST", Status2 == "1YrPostBurn" ~ "01YR01")) %>%
+  mutate(Burn = case_when(Plot %in% c("PIPS_02", "PIPS_05") ~ "BMFall25", Plot %in% c("PIPO_27", "PIPO_09", "PIPS_14") ~ "HQFall25", .default = Burn)) %>%
+  mutate(Burn = case_when(Burn == "Fall24" ~ "1. Fall 2024", Burn == "Spring25" ~ "2. Spring 2025", Burn == "BMFall25" ~ "3. Fall 2025 Beaver Meadows", 
+                          Burn == "HQFall25" ~ "4. Fall 2025 HQ"))
 fire <- fire %>% mutate(Measurement = case_when(Measurement == "Char.Ht." ~ "Char Height (m)", Measurement == "Crown.Scorch.." ~ "Percent Crown Scorch", 
-                                                Measurement == "Scorch.Ht." ~ "Scorch Height (m)"))
+                                                Measurement == "Scorch.Ht." ~ "Scorch Height (m)", Measurement == "Live.Crown.Base.Ht." ~ "Canopy Base Height (m)"))
+fire$Status2 <- factor(fire$Status2, levels = c("PRE", "POST", "01YR01"))
+fire$Burn <- factor(fire$Burn, levels = c("1. Fall 2024", "2. Spring 2025", "3. Fall 2025 Beaver Meadows", "4. Fall 2025 HQ"))
 
-# Plot of Char/Scorch
-ggplot(fire, aes(x = Burn, y = value, fill = Burn)) + geom_boxplot(alpha = 0.8) + facet_wrap(~Measurement, scale = "free_y") + scale_fill_manual(values=nps_pal) + labs(title = "Overstory Fire Effects", y = "", x = "Burn") + theme_nps() + theme(axis.text.x=element_text(angle=45,hjust=1), legend.position = "none")
+# plot 1: bole char, scorch height, % scorch for 3 burns
+plot1 <- fire %>% filter(Status2 == "POST") %>% filter(Measurement != "Canopy Base Height (m)")
 
+plot1 <- plot1 %>% group_by(Burn, Measurement) %>% summarise(mean = mean(value), sd = sd(value), .groups = "drop")
+plot1$Measurement <- factor(plot1$Measurement, levels = c("Char Height (m)", "Scorch Height (m)", "Percent Crown Scorch"))
 
+ggplot(plot1, aes(x = Measurement, y = mean, fill = Measurement)) + geom_col() + geom_errorbar(aes(ymin = pmax(mean - sd,0), ymax = mean + sd), width = 0.2) + facet_wrap(~Burn, ncol = 1) + scale_fill_manual(values= nps_pal) + 
+  theme_nps()+ labs(title = "Overstory Fire Effects", y = " ") + theme(axis.text.x=element_text(angle=15,hjust=1), legend.position = "none")
 
-#  CBH Figure
-trees <- trees %>% filter(!is.na(DBH)) %>% dplyr::select(2, 17, 3, 5:7, 9:13, 18:19) %>% filter(Burn != "Fall25")
-trees$Status2 <- factor(trees$Status2, levels = c("PreBurn", "1YrPostBurn"))
+# Plot 2: canopy base height
+plot2 <- fire %>% filter(Status2 != "POST") %>% filter(Burn %in% c("1. Fall 2024", "2. Spring 2025")) %>% filter(Measurement == "Canopy Base Height (m)")
+plot2[is.na(plot2)] <- 0
 
-ggplot(trees, aes(x = Burn, y = Live.Crown.Base.Ht., fill = Status2)) + geom_boxplot(alpha = 0.8, position = position_dodge()) + scale_fill_manual(values=nps_pal) + labs(title = "Overstory Fire Effects", y = "Canopy Base Height (m)", x = "Burn", fill = "Burn Status") + theme_nps() + theme(axis.text.x=element_text(angle=45,hjust=1))
+ggplot(plot2, aes(x = Burn, y = value, fill = Status2)) + geom_boxplot(alpha = 0.8)+ scale_fill_manual(values=nps_pal) + labs(title = "Change in Canopy Base Height", y = "Meters") + theme_nps()
 
+#Stats
+model <- lm(value ~ Burn * Status2, data = plot2)
+emm <- emmeans(model, ~Status2 | Burn)
+contr <- contrast(emm, method = "pairwise") %>% as.data.frame()
+contr <- contr %>%mutate(label = case_when(p.value < 0.001 ~ "***",p.value < 0.01  ~ "**",p.value < 0.05  ~ "*",TRUE ~ "")) %>%filter(label != "")
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- # Stats for CBH
-tstats <- trees %>% dplyr::select(1:4, 9) %>% pivot_wider( names_from = Status2, values_from = Live.Crown.Base.Ht.)%>%slice(-27)
-tstats$PreBurn <- as.numeric(tstats$PreBurn)
-tstats$`1YrPostBurn` <- as.numeric(tstats$`1YrPostBurn`)
-tstats <- tstats %>% slice(-6)
-f24 <- tstats %>% filter(Burn == "Fall24")
-sp25 <- tstats %>% filter(Burn == "Spring25")
+y_positions <- plot2 %>%group_by(Burn) %>%summarise(y_pos = max(value) * 1.1, .groups = "drop")
+sig_df <- left_join(contr, y_positions,by = "Burn")
 
-#Fall24: p = 0.0001971
-wilcox.test(f24$`PreBurn`, f24$`1YrPostBurn`, paired = TRUE)
+#Now add this to plot
+ggplot(plot2, aes(x = Burn, y = value, fill = Status2)) + geom_boxplot(alpha = 0.8)+ scale_fill_manual(values=nps_pal) + labs(title = "Change in Canopy Base Height", y = "Meters") + theme_nps() +  geom_text(data = sig_df, aes(x = Burn, y = y_pos, label = label), inherit.aes = FALSE, size = 6)
 
-#Spring25: p = 0.004121
-wilcox.test(sp25$`PreBurn`, sp25$`1YrPostBurn`, paired = TRUE)
 
 
 
@@ -446,17 +564,26 @@ wilcox.test(sp25$`PreBurn`, sp25$`1YrPostBurn`, paired = TRUE)
 4. Burn Severity
 ```{r}
 
+# load data
+bs <- read.csv("Data/rx_burnseverity.csv") %>% dplyr::select(-c(1,5, 6 )) %>% pivot_longer(cols = c(4:13), names_to = "Type", values_to= "value")
+#remove monitoring statuses not from burn
+bs <- bs %>% slice(-c(131:140, 151:160, 171:190, 201:220, 231:250, 261:270))
 
-
-bs <- read.csv("Biennial2026/Data/rx_burnseverity.csv") %>% dplyr::select(-c(1,5, 6 )) %>% pivot_longer(cols = c(4:13), names_to = "Type", values_to= "value")
 bs <- bs %>% group_by(Burn, Type) %>% summarise(mean = mean(value), sd = sd(value), .groups = "drop")
 bs <- bs %>% extract(col = Type,  into = c("Type", "Severity"), regex = "([A-Za-z]+)(.*)")
 bs <- bs %>% mutate(Severity = case_when(Severity == "1Pct" ~ "Heavily Burned", Severity == "2Pct" ~ "Moderately Burned", 
                                          Severity == "3Pct" ~ "Lightly Burned", Severity == "4Pct" ~ "Scorched", Severity == "5Pct" ~ "Unburned"))
-bs$Burn <- factor(bs$Burn, levels = c("Fall24", "Spring25", "Fall25_BM", "Fall25_HQ"))
+bs <- bs %>% mutate(Burn = case_when(Burn == "Fall24" ~ "Fall 2024", Burn == "Spring25" ~ "Spring 2025",
+                                     Burn == "Fall25_BM" ~ "Fall 2025 Beaver Meadows", Burn ==  "Fall25_HQ" ~ "Fall 2025 HQ"))
+
+bs$Burn <- factor(bs$Burn, levels = c("Fall 2024", "Spring 2025", "Fall 2025 Beaver Meadows", "Fall 2025 HQ"))
 bs <- bs %>% mutate(Type = case_when(Type == "Sub" ~ "Substrate", Type == "Veg" ~ "Vegetation"))
 
-ggplot(bs, aes(x = Severity, y = mean, fill = Type)) + geom_col(alpha = 0.8, position = position_dodge()) + geom_errorbar(aes(ymin = pmax(mean-sd, 0), ymax = mean + sd), position = position_dodge(width = 0.9), width = 0.3) + facet_wrap(~Burn)+ scale_fill_manual(values=nps_pal) + labs(title="Substrate & Vegetation Burn Severity", y="Avg. Percent", fill = "Data Type") +theme_nps() +theme(axis.text.x=element_text(angle=45,hjust=1))
+bs$Severity <- factor(bs$Severity, levels = c("Unburned", "Scorched", "Lightly Burned", "Moderately Burned", "Heavily Burned"))
+
+ggplot(bs, aes(x = Severity, y = mean, fill = Type)) + geom_col(alpha = 0.8, position = position_dodge()) + geom_errorbar(aes(ymin = pmax(mean-sd, 0), ymax = mean + sd), position = position_dodge(width = 0.9), width = 0.3) + 
+  facet_wrap(~Burn, labeller = labeller(Burn = function(x) {paste0(match(x, unique(x)), ". ", x)}), ncol = 1)+
+  scale_fill_manual(values=nps_pal) + labs(title="Substrate & Vegetation Burn Severity", y="Avg. Percent", fill = "Data Type") +theme_nps() +theme(axis.text.x=element_text(angle=45,hjust=1))
 
 
 
@@ -465,418 +592,89 @@ ggplot(bs, aes(x = Severity, y = mean, fill = Type)) + geom_col(alpha = 0.8, pos
 
 
 ```
+
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Part B: Viewing intelimon metrics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Want to show pre vs. post. vs year 1 intelimon metrics for RAP03 & pips16 (intelimon metrics slide)
+```{r}
+library(tidyverse)
+library(ggplot2)
+pred <- read.csv("Data/tls models/pred_burnseverity.csv")%>% dplyr::select(-1)
+vars <- read.csv("Data/tls models/vars_burnseverity.csv") %>% dplyr::select(-1)
+temp_data <- cbind(pred, vars)
+
+#select intelimon variables you want
+temp_data <- temp_data %>% dplyr::select(c(scan_name, MacroPlot.Name, MonStatus, LAI, ULAI, MLAI, OLAI, h_GC_cnt, h_US_cnt, h_MS_cnt, h_OS_cnt,  h_GC_per, h_US_per, h_MS_per, h_OS_per, GCvol, USvol, MSvol, OSvol ))
+
+# Pivot longer 
+temp_data <- temp_data %>% pivot_longer(cols = c(4:19), names_to = "metric", values_to = "value")
+
+#Add groupings 
+temp_data <- temp_data %>% mutate(group = case_when(metric %in% c("LAI", "ULAI", "MLAI", "OLAI") ~ "LAI",
+                                                    metric %in% c("h_GC_cnt", "h_US_cnt", "h_MS_cnt", "h_OS_cnt") ~ "Point Count",
+                                                    metric %in% c("h_GC_per", "h_US_per", "h_MS_per", "h_OS_per") ~ "Percent of Points",
+                                                    metric %in% c("GCvol", "USvol", "MSvol", "OSvol") ~ "Volume of Points"))
+
+temp_data$metric <- factor(temp_data$metric, levels = c("ULAI", "MLAI", "OLAI", "LAI", "h_GC_cnt", "h_US_cnt", "h_MS_cnt", "h_OS_cnt", "h_GC_per", "h_US_per", "h_MS_per", "h_OS_per", "GCvol", "USvol", "MSvol", "OSvol"))
+temp_data$MonStatus <- factor(temp_data$MonStatus, levels = c("PRE", "POST", "YR01"))
+
+#select plots rap03 and pips16
+rap03 <- temp_data %>% filter(MacroPlot.Name == "BME_RAP003")
+pips16 <- temp_data %>% filter(MacroPlot.Name == "FPIPS1T02:16")
+rap15 <- temp_data %>% filter(MacroPlot.Name == "BME_RAP015")
+
+
+rap03_vol <- rap03 %>% filter(group == "Volume of Points")
+ggplot(rap03_vol, aes(x = MonStatus, y = value, fill = MonStatus )) + geom_col(position = position_dodge(), width = 0.7)+ facet_wrap(~metric, scales = "free", ncol=4) +labs(title = "Voxelized point volume", x = "Monitoring Status") + scale_fill_manual(values=nps_pal) + theme_nps() + theme(legend.position = "none")
+
+
+
+rap15_vol <- rap15 %>% filter(group == "Volume of Points")
+ggplot(rap15_vol, aes(x = MonStatus, y = value, fill = MonStatus )) + geom_col(position = position_dodge(), width = 0.7)+ facet_wrap(~metric, scales = "free", ncol=4) +labs(title = "Voxelized point volume", x = "Monitoring Status") + scale_fill_manual(values=nps_pal) + theme_nps() + theme(legend.position = "none")
+
+
+
+
+```
+
+
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## Part C: TLS Modeling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-1. Substrate Burn Severity
+1 - Scorch Height
 ```{r}
-
 
 library(tidyverse)
 library(leaps)
 library(performance)
 library(ggplot2)
-
-#Load data
-pred <- read.csv("tls modeling/burn_pred.csv")
-vars <- read.csv("tls modeling/burn_vars.csv")
-
-#subset to only post-burn scans
-pred <- pred %>% select(-1) %>% slice(-c(1,  2, 4, 6, 8, 10, 12, 14, 16,18, 19, 21, 22, 24,25, 27,29))
-vars <- vars %>% select(-1)%>% slice(-c(1, 2, 4,6, 8, 10, 12, 14, 16, 18,19, 21, 22, 24,25,27,29))
-
-vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% select(where(~!is.factor(.) || nlevels(.) > 1)) %>% select(where(~sum(is.na(.)) == 0))
-
-## Split data into training and test datasets
-set.seed(123)
-sample_size <- floor(0.2 * nrow(vars))
-test_indices <- sample(seq_len(nrow(vars)), size = sample_size)
-train_vars <- vars[-test_indices, ]
-test_vars <- vars[test_indices, ]
-train_pred <- pred[-test_indices, ]
-test_pred <- pred[test_indices, ]
-
-#Set method to 'seqrep', nvmax to '4' and variable to 'TreesPerAcre'
-regfit = regsubsets(train_pred$SubSev~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
-
-# Check models (***Question: seems to always be 4, is this step really necessary? I'm not totaly sure what I am looking for)
-regsum<- summary(regfit)
-plot(regsum$rsq, type = "l") 
-plot(regsum$rss, type = "l") 
-plot(regsum$bic, type = "l") 
-which.min(regsum$bic) 
-plot(regfit, scale = "r2") 
-
-#Change # to best model
-vcov(regfit,3) 
-coef(regfit,2)
-
-attach(train_vars)
-
-# put the selected predictor variables in the model after the "~" seperated by "+" and run the model
-lm1 <- lm(formula = train_pred$SubSev~ s_l2_zero_per +  vox_l1_vari +  fine_l1_std)
-
-#look at the summary r2 values and RMSE
-#***Are there specific r2 and rmse values I am looking for here??
-summary(lm1)
-r2(lm1)
-rmse(lm1)
-
-# Visual check of model assumptions. Make sure Linearity, homogeneity of variance, influential observations, colinearity, normality of risiduals all check out
-check_model(lm1)
-
-#use the model to predict out new values from variables alone
-lm_out <- predict.lm(lm1, vars)
-
-
-#format the predictions and observations for plotting
-data<-data.frame(x=lm_out, y=pred$SubSev)
-
-# Plot observed values vs. predicted
-ggplot(data,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='?') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
-
-# use the model to predict test data
-test_out<- predict.lm(lm1,test_vars)
-
-# Calculate RMSE of test data
-errors<- test_out - test_pred$SubSev
-mae <- mean(abs(errors))
-mse <- mean(errors^2)
-rmse <- sqrt(mse)
-rmse
-
-# format test predicted and observed
-data2<- data.frame(x=test_out, y=test_pred$SubSev)
-
-# Plot test observed values vs. test predicted
-ggplot(data2,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='test') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
-
-
-# If the model looks good, save to disk
-saveRDS(lm1,  "burn/Substrate_Severity.rda") 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Look at how TLS modeled fuel consumption
-
-BS <- cbind(pred, data)%>% select(c(X.1, x, y)) %>% mutate(plot = str_extract(X.1, "^[^_]+_[^_]+")) %>% 
-  mutate(burn = case_when(plot %in% c("CORMP_0012", "CORMP_0014", "CORMP_0015", "CORMP_0009", "CORMP_0010", "CORMP_0008") ~ "Fall24", 
-                          plot %in% c("CORMP_0051", "CORMP_0052", "CORMP_0055", "CORMP_0020") ~ "Fall25",
-                          plot %in% c("CORMP_0005", "CORMP_0007", "CORMP_0001", "CORMP_0002", "CORMP_0022", "CORMP_0050")~ "Spring25"))
-
-BS <- BS %>% select(-X.1) %>% pivot_longer(cols = c(x,y), names_to = "type", values_to = "value")
-
-
-library(ggplot2)
-
-ggplot(BS) + geom_boxplot(aes(x = burn, y = value, fill = type)) 
-
-
-sum <- BS %>% group_by( burn, type ) %>% summarise(max = max(value), min = min(value), median = median(value), mean = mean(value), sd = sd(value)) %>% ungroup()
-
-ggplot(sum) + geom_col(aes(x = burn, y = mean, fill = type), position = position_dodge())+ geom_errorbar(aes(x = burn, ymin = mean - sd, ymax = mean+ sd, fill = type), position = position_dodge())
-
-
-
-```
-
-
-2. Vegetation Burn Severity
-```{r}
-
-
-library(tidyverse)
-library(leaps)
-library(performance)
-library(ggplot2)
-
-#Load data
-pred <- read.csv("tls modeling/burn_pred.csv")
-vars <- read.csv("tls modeling/burn_vars.csv")
-
-#subset to only post-burn scans
-pred <- pred %>% select(-1) %>% slice(-c(1,  2, 4, 6, 8, 10, 12, 14, 16,18, 19, 21, 22, 24,25, 27,29))
-vars <- vars %>% select(-1)%>% slice(-c(1, 2, 4,6, 8, 10, 12, 14, 16, 18,19, 21, 22, 24,25,27,29))
-
-
-
-vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% select(where(~!is.factor(.) || nlevels(.) > 1)) %>% select(where(~sum(is.na(.)) == 0))
-set.seed(123)
-sample_size <- floor(0.2 * nrow(vars))
-test_indices <- sample(seq_len(nrow(vars)), size = sample_size)
-train_vars <- vars[-test_indices, ]
-test_vars <- vars[test_indices, ]
-train_pred <- pred[-test_indices, ]
-test_pred <- pred[test_indices, ]
-
-
-regfit = regsubsets(train_pred$VegSev~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
-
-regsum<- summary(regfit)
-plot(regsum$rsq, type = "l") 
-plot(regsum$rss, type = "l") 
-plot(regsum$bic, type = "l") 
-which.min(regsum$bic) 
-plot(regfit, scale = "r2") 
-
-#Change # to best model
-vcov(regfit,3) 
-coef(regfit,2)
-
-attach(train_vars)
-
-# put the selected predictor variables in the model after the "~" seperated by "+" and run the model
-lm1 <- lm(formula = train_pred$VegSev~ h_l1_kurt+ hr0_10_l1_vari   +  LF_FBFM13)
-
-#look at the summary r2 values and RMSE
-#***Are there specific r2 and rmse values I am looking for here??
-summary(lm1)
-r2(lm1)
-rmse(lm1)
-
-# Visual check of model assumptions. Make sure Linearity, homogeneity of variance, influential observations, colinearity, normality of risiduals all check out
-check_model(lm1)
-
-#use the model to predict out new values from variables alone
-lm_out <- predict.lm(lm1, vars)
-
-
-#format the predictions and observations for plotting
-data<-data.frame(x=lm_out, y=pred$VegSev)
-
-# Plot observed values vs. predicted
-ggplot(data,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='?') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
-
-# use the model to predict test data
-test_out<- predict.lm(lm1,test_vars)
-
-# Calculate RMSE of test data
-errors<- test_out - test_pred$SubSev
-mae <- mean(abs(errors))
-mse <- mean(errors^2)
-rmse <- sqrt(mse)
-rmse
-
-# format test predicted and observed
-data2<- data.frame(x=test_out, y=test_pred$SubSev)
-
-# Plot test observed values vs. test predicted
-ggplot(data2,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='test') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
-
-
-# If the model looks good, save to disk
-saveRDS(lm1,  "burn/Substrate_Severity.rda") 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Look at how TLS modeled fuel consumption
-
-BS <- cbind(pred, data)%>% select(c(X.1, x, y)) %>% mutate(plot = str_extract(X.1, "^[^_]+_[^_]+")) %>% 
-  mutate(burn = case_when(plot %in% c("CORMP_0012", "CORMP_0014", "CORMP_0015", "CORMP_0009", "CORMP_0010", "CORMP_0008") ~ "Fall24", 
-                          plot %in% c("CORMP_0051", "CORMP_0052", "CORMP_0055", "CORMP_0020") ~ "Fall25",
-                          plot %in% c("CORMP_0005", "CORMP_0007", "CORMP_0001", "CORMP_0002", "CORMP_0022", "CORMP_0050")~ "Spring25"))
-
-BS <- BS %>% select(-X.1) %>% pivot_longer(cols = c(x,y), names_to = "type", values_to = "value")
-
-
-library(ggplot2)
-
-ggplot(BS) + geom_boxplot(aes(x = burn, y = value, fill = type)) 
-
-
-sum <- BS %>% group_by( burn, type ) %>% summarise(max = max(value), min = min(value), median = median(value), mean = mean(value), sd = sd(value)) %>% ungroup()
-
-ggplot(sum) + geom_col(aes(x = burn, y = mean, fill = type), position = position_dodge())+ geom_errorbar(aes(x = burn, ymin = mean - sd, ymax = mean+ sd, fill = type), position = position_dodge())
-
-
-
-```
-
-
-2. Mean Schorch Height
-```{r}
-
-
-library(tidyverse)
-library(leaps)
-library(performance)
-library(ggplot2)
-
-#Load data
-pred <- read.csv("tls modeling/burn_pred.csv")
-vars <- read.csv("tls modeling/burn_vars.csv")
-
-#subset to only post-burn scans
-pred <- pred %>% select(-1) %>% slice(-c(1,  2, 4, 6, 8, 10, 12, 14, 16,18, 19, 21, 22, 24,25, 27,29))
-vars <- vars %>% select(-1)%>% slice(-c(1, 2, 4,6, 8, 10, 12, 14, 16, 18,19, 21, 22, 24,25,27,29))
-
-
-
-vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% select(where(~!is.factor(.) || nlevels(.) > 1)) %>% select(where(~sum(is.na(.)) == 0))
-set.seed(123)
-sample_size <- floor(0.2 * nrow(vars))
-test_indices <- sample(seq_len(nrow(vars)), size = sample_size)
-train_vars <- vars[-test_indices, ]
-test_vars <- vars[test_indices, ]
-train_pred <- pred[-test_indices, ]
-test_pred <- pred[test_indices, ]
-
-
-regfit = regsubsets(train_pred$MeanScHt~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
-
-regsum<- summary(regfit)
-plot(regsum$rsq, type = "l") 
-plot(regsum$rss, type = "l") 
-plot(regsum$bic, type = "l") 
-which.min(regsum$bic) 
-plot(regfit, scale = "r2") 
-
-#Change # to best model
-vcov(regfit,3) 
-coef(regfit,2)
-
-attach(train_vars)
-
-# put the selected predictor variables in the model after the "~" seperated by "+" and run the model
-lm1 <- lm(formula = train_pred$MeanScHt~ h_l1_tgi+ s_l1_prop_ku     +  GCvol)
-
-#look at the summary r2 values and RMSE
-#***Are there specific r2 and rmse values I am looking for here??
-summary(lm1)
-r2(lm1)
-rmse(lm1)
-
-# Visual check of model assumptions. Make sure Linearity, homogeneity of variance, influential observations, colinearity, normality of risiduals all check out
-check_model(lm1)
-
-#use the model to predict out new values from variables alone
-lm_out <- predict.lm(lm1, vars)
-
-
-#format the predictions and observations for plotting
-data<-data.frame(x=lm_out, y=pred$MeanScHt)
-
-# Plot observed values vs. predicted
-ggplot(data,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='?') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
-
-# use the model to predict test data
-test_out<- predict.lm(lm1,test_vars)
-
-# Calculate RMSE of test data
-errors<- test_out - test_pred$SubSev
-mae <- mean(abs(errors))
-mse <- mean(errors^2)
-rmse <- sqrt(mse)
-rmse
-
-# format test predicted and observed
-data2<- data.frame(x=test_out, y=test_pred$SubSev)
-
-# Plot test observed values vs. test predicted
-ggplot(data2,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='test') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
-
-
-# If the model looks good, save to disk
-saveRDS(lm1,  "burn/Substrate_Severity.rda") 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#Look at how TLS modeled fuel consumption
-
-BS <- cbind(pred, data)%>% select(c(X.1, x, y)) %>% mutate(plot = str_extract(X.1, "^[^_]+_[^_]+")) %>% 
-  mutate(burn = case_when(plot %in% c("CORMP_0012", "CORMP_0014", "CORMP_0015", "CORMP_0009", "CORMP_0010", "CORMP_0008") ~ "Fall24", 
-                          plot %in% c("CORMP_0051", "CORMP_0052", "CORMP_0055", "CORMP_0020") ~ "Fall25",
-                          plot %in% c("CORMP_0005", "CORMP_0007", "CORMP_0001", "CORMP_0002", "CORMP_0022", "CORMP_0050")~ "Spring25"))
-
-BS <- BS %>% select(-X.1) %>% pivot_longer(cols = c(x,y), names_to = "type", values_to = "value")
-
-
-library(ggplot2)
-
-ggplot(BS) + geom_boxplot(aes(x = burn, y = value, fill = type)) 
-
-
-sum <- BS %>% group_by( burn, type ) %>% summarise(max = max(value), min = min(value), median = median(value), mean = mean(value), sd = sd(value)) %>% ungroup()
-
-ggplot(sum) + geom_col(aes(x = burn, y = mean, fill = type), position = position_dodge())+ geom_errorbar(aes(x = burn, ymin = mean - sd, ymax = mean+ sd, fill = type), position = position_dodge())
-
-
-
-```
-
-
-
-
-2. pre vs post burn fuels
-```{r}
-
-# To dos for fuels: 
-# - try separating out post-burn
-
-# 
-pred <- read.csv("tls modeling/pred2.csv")
-data <- read.csv("tls modeling/pred_fuels2.csv")
-data <- full_join(data, pred)
-
-# post burn : slice(c(9, 13, 16, 19, 22, 25, 32, 35, 38, 40, 43, 46, 49, 52, 55))
-# pre-burn/year-01: slice(-c(9,13,16,19,22,25,32,35,38,40,43,46,49,52,55))
-
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#post-burn
+pred <- read.csv("Data/tls models/pred_burnseverity.csv")%>% dplyr::select(-1)
+vars <- read.csv("Data/tls models/vars_burnseverity.csv") %>% dplyr::select(-1)
+temp_data <- cbind(pred, vars)
+ 
+temp_data <- temp_data %>% filter(MonStatus != "PR01") %>% filter(MonStatus != "YR01") %>% filter(!grepl("EC_", MacroPlot.Name))
+temp_data <- temp_data %>% slice(-c(19:21, 35:36))
+temp_data <- temp_data %>% slice(-c(1, 9, 11, 13, 15, 17, 20, 22, 24, 28, 31))
+temp_data <- temp_data %>% slice(-c(17, 19, 20))
 
-library(tidyverse)
-library(leaps)
-library(performance)
-library(ggplot2)
+# Now I have my data filtered the way I want it, separate pred and vars back out
+pred <- temp_data %>% dplyr::select(1:24)
+vars <- temp_data %>% dplyr::select(25:277)
 
-
-
-#Load data
-pred <- read.csv("tls modeling/pred2.csv")%>% select(-c(1)) %>%slice(c(9, 13, 16, 19, 22, 25, 32, 35, 38, 40, 43, 46, 49, 52, 55))
-vars <- read.csv("tls modeling/vars2.csv")%>% select(-c(1))%>%slice(c(9, 13, 16, 19, 22, 25, 32, 35, 38, 40, 43, 46, 49, 52, 55))
-
-
-vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% select(where(~!is.factor(.) || nlevels(.) > 1)) %>% select(where(~sum(is.na(.)) == 0))
+# Run the following chunk so that the vars data is formatted correctly for modeling
+vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% dplyr::select(where(~!is.factor(.) || nlevels(.) > 1)) %>% dplyr::select(where(~sum(is.na(.)) == 0))
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 set.seed(123)
-sample_size <- floor(0.2 * nrow(vars))
+sample_size <- floor(0.1 * nrow(vars))
 test_indices <- sample(seq_len(nrow(vars)), size = sample_size)
 train_vars <- vars[-test_indices, ]
 test_vars <- vars[test_indices, ]
@@ -884,8 +682,9 @@ train_pred <- pred[-test_indices, ]
 test_pred <- pred[test_indices, ]
 
 
-regfit = regsubsets(train_pred$TotalAll~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
+regfit = regsubsets(train_pred$MaxScHt~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
 
+# Visual checks to see how many variables you should use
 regsum<- summary(regfit)
 plot(regsum$rsq, type = "l") 
 plot(regsum$rss, type = "l") 
@@ -893,143 +692,294 @@ plot(regsum$bic, type = "l")
 which.min(regsum$bic) 
 plot(regfit, scale = "r2") 
 
-#Change # to best model
+# Change # to best model
 vcov(regfit,2) 
-coef(regfit,2)
+coef(regfit,3)
+
+
 
 attach(train_vars)
-
 # put the selected predictor variables in the model after the "~" seperated by "+" and run the model
-lm1 <- lm(formula = train_pred$TotalAll~ h_ng_tgi + hr100_1000_l1_cnt)
-
-#look at the summary r2 values and RMSE
-#***Are there specific r2 and rmse values I am looking for here??
+lm1 <- lm(formula = train_pred$MeanScHt ~  h_ground_cnt   +   hr0_10_l1_cnt+ hr100_1000_l1_mean )
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 summary(lm1)
-r2(lm1)
-rmse(lm1)
+r2(lm1) 
+rmse(lm1) 
 
-# Visual check of model assumptions. Make sure Linearity, homogeneity of variance, influential observations, colinearity, normality of risiduals all check out
 check_model(lm1)
 
-#use the model to predict out new values from variables alone
+
 lm_out <- predict.lm(lm1, vars)
+data<-data.frame(x=lm_out, y=pred$MeanScHt)
 
-
-#format the predictions and observations for plotting
-data<-data.frame(x=lm_out, y=pred$TotalAll)
-
-# Plot observed values vs. predicted
 ggplot(data,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='?') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
+  geom_point() + geom_smooth(method='lm', se=FALSE,, color ="black" ) +theme_light() + scale_color_manual(values = nps_pal)+
+  labs(x='Predicted Values', y='Observed Values', title='Max Canopy Scorch Height') +
+  theme(plot.title = element_text(hjust=0.5, size=20, face='bold')) + theme_nps()
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Plot your model
+
+
+BS <- cbind(pred, data)
+BS <- BS %>% dplyr::select(c(x, y, MacroPlot.Name, MonStatus)) %>% 
+  mutate(burn = case_when(MacroPlot.Name %in% c("BME_RAP001", "BME_RAP003", "BME_RAP004", "BME_RAP006", "BME_RAP009", "BME_RAP010", "BME_RAP002") ~ "Fall 2024",
+                          MacroPlot.Name %in% c("BME_RAP013", "BME_RAP015", "BME_RAP016", "BME_RAP014", "FPIPS1T02:08", "FPIPS1T02:16") ~ "Spring 2025",
+                          MacroPlot.Name %in% c( "FPIPS1T02:01", "FPIPS1T02:05", "FPIPS1T02:02") ~ "BM Fall 2025",
+                          MacroPlot.Name %in% c("FPIPS1T02:14", "FPIPO1T09:09", "FPIPO1T09:27") ~ "HQ Fall 2025"))
+BS <- BS %>% slice(-c(2,4,6))
+BS <- BS %>% pivot_longer(cols = c(x,y), names_to = "type", values_to = "value")
+BS <- BS %>% mutate(type = case_when(type == "x" ~ "Predicted", type == "y" ~ "Observed"))
+
+sum <- BS %>% group_by( burn, type ) %>% summarise(max = max(value), min = min(value), median = median(value), mean = mean(value), sd = sd(value)) %>% 
+  ungroup()
+
+sum$burn <- factor(sum$burn, levels = c("Fall 2024", "Spring 2025", "BM Fall 2025", "HQ Fall 2025"))
+
+ggplot(sum, aes(x = burn, y = mean, fill = type)) + geom_col(alpha = 0.8, position = position_dodge()) + geom_errorbar(aes(ymin = pmax(mean-sd, 0), ymax = mean + sd), position = position_dodge(width = 0.9), width = 0.3) + scale_fill_manual(values=nps_pal) + labs(title="Canopy Scorch Height", y="Height (m)", fill = "Data Type") +theme_nps() +theme(axis.text.x=element_text(angle=45,hjust=1))
 
 
 
-post_burn <- cbind(pred, data)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#pre-burn/year01
-
-#Load data
-pred <- read.csv("tls modeling/pred2.csv")%>% select(-c(1)) %>%slice(-c(9,13,16,19,22,25,32,35,38,40,43,46,49,52,55))
-vars <- read.csv("tls modeling/vars2.csv")%>% select(-c(1))%>%slice(-c(9,13,16,19,22,25,32,35,38,40,43,46,49,52,55))
-
-
-vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% select(where(~!is.factor(.) || nlevels(.) > 1)) %>% select(where(~sum(is.na(.)) == 0))
-set.seed(123)
-sample_size <- floor(0.2 * nrow(vars))
-test_indices <- sample(seq_len(nrow(vars)), size = sample_size)
-train_vars <- vars[-test_indices, ]
-test_vars <- vars[test_indices, ]
-train_pred <- pred[-test_indices, ]
-test_pred <- pred[test_indices, ]
-
-
-regfit = regsubsets(train_pred$TotalAll~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
-
-regsum<- summary(regfit)
-plot(regsum$rsq, type = "l") 
-plot(regsum$rss, type = "l") 
-plot(regsum$bic, type = "l") 
-which.min(regsum$bic) 
-plot(regfit, scale = "r2") 
-
-#Change # to best model
-vcov(regfit,2) 
-coef(regfit,2)
-
-attach(train_vars)
-
-# put the selected predictor variables in the model after the "~" seperated by "+" and run the model
-lm1 <- lm(formula = train_pred$TotalAll~ h_l1_per +hr100_1000_l1_median)
-
-#look at the summary r2 values and RMSE
-#***Are there specific r2 and rmse values I am looking for here??
-summary(lm1)
-r2(lm1)
-rmse(lm1)
-
-# Visual check of model assumptions. Make sure Linearity, homogeneity of variance, influential observations, colinearity, normality of risiduals all check out
-check_model(lm1)
-
-#use the model to predict out new values from variables alone
-lm_out <- predict.lm(lm1, vars)
-
-
-#format the predictions and observations for plotting
-data<-data.frame(x=lm_out, y=pred$TotalAll)
-
-# Plot observed values vs. predicted
-ggplot(data,aes(x,y)) +
-  geom_point() +
-  geom_smooth(method='lm', se=FALSE,) +
-  theme_light() +
-  labs(x='Predicted Values', y='Observed Values', title='?') +
-  theme(plot.title = element_text(hjust=0.5, size=20, face='bold') 
-  ) 
 
 
 
-pre_burn <- cbind(pred, data)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#Look at how TLS modeled fuel consumption
-# first, combine pre and post
-rx <- rbind(pre_burn, post_burn)%>% select(c(X, x, y))
-data <- read.csv("tls modeling/pred_fuels2.csv")
-rx <- full_join(rx, data) %>% mutate(plot = str_extract(X, "^[^_]+_[^_]+")) 
 
 
-rx <- rx %>% slice(-c(80)) %>% mutate(burn = case_when(plot %in% c("CORMP_0012", "CORMP_0014", "CORMP_0015", "CORMP_0009", "CORMP_0010", "CORMP_0008") ~ "Fall24", plot %in% c("CORMP_0051", "CORMP_0052", "CORMP_0055", "CORMP_0020") ~ "Fall25",
-                          plot %in% c("CORMP_0005", "CORMP_0007", "CORMP_0001", "CORMP_0002", "CORMP_0022", "CORMP_0050")~ "Spring25", .default = "no"))
 
-rx <- rx %>% select(c(1:5, 18,19)) %>% filter(burn != "no")
-rx <- rx %>% mutate(Status = case_when(MonStatus %in% c("00PRE", "02PR01", "02PRE", "01PRE" ,  "01YR15b", "01PR01" , "02YR15b" ,"01YR21b") ~ "PRE", 
-                                       MonStatus %in% c("01POST","03POST", "02POST" ) ~ "POST", 
-                                       MonStatus %in% c("01YR01") ~ "Yr01"))
-
-rx <- rx  %>% pivot_longer(cols = c(x,y), names_to = "type", values_to = "value")
-
-
-library(ggplot2)
-
-ggplot(rx) + geom_boxplot(aes(x = Status, y = value, fill = type)) + facet_wrap(~burn)
-
-
-sum <- BS %>% group_by( burn, type ) %>% summarise(max = max(value), min = min(value), median = median(value), mean = mean(value), sd = sd(value)) %>% ungroup()
-
-ggplot(sum) + geom_col(aes(x = burn, y = mean, fill = type), position = position_dodge())+ geom_errorbar(aes(x = burn, ymin = mean - sd, ymax = mean+ sd, fill = type), position = position_dodge())
 
 
 
 ```
 
 
-##to do: model burn 1, then 2, then 3 to show how model is improving
+2 - Substrate burn severity
+```{r}
 
+library(tidyverse)
+library(leaps)
+library(performance)
+library(ggplot2)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pred <- read.csv("Data/tls models/pred_burnseverity.csv")%>% dplyr::select(-1)
+vars <- read.csv("Data/tls models/vars_burnseverity.csv") %>% dplyr::select(-1)
+temp_data <- cbind(pred, vars)
+ 
+temp_data <- temp_data %>% filter(MonStatus != "PR01") %>% filter(MonStatus != "YR01") %>% filter(!grepl("EC_", MacroPlot.Name))
+temp_data <- temp_data %>% slice(-c(19:21, 35:36))
+temp_data <- temp_data %>% slice(-c(1, 5, 9, 11, 13, 15, 17, 20, 22, 24, 28, 31))
+
+
+# Now I have my data filtered the way I want it, separate pred and vars back out
+pred <- temp_data %>% dplyr::select(1:24)
+vars <- temp_data %>% dplyr::select(25:277)
+
+# Run the following chunk so that the vars data is formatted correctly for modeling
+vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% dplyr::select(where(~!is.factor(.) || nlevels(.) > 1)) %>% dplyr::select(where(~sum(is.na(.)) == 0))
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+set.seed(123)
+sample_size <- floor(0.1 * nrow(vars))
+test_indices <- sample(seq_len(nrow(vars)), size = sample_size)
+train_vars <- vars[-test_indices, ]
+test_vars <- vars[test_indices, ]
+train_pred <- pred[-test_indices, ]
+test_pred <- pred[test_indices, ]
+
+
+regfit = regsubsets(train_pred$SubSev~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
+
+# Visual checks to see how many variables you should use
+regsum<- summary(regfit)
+plot(regsum$rsq, type = "l") 
+plot(regsum$rss, type = "l") 
+plot(regsum$bic, type = "l") 
+which.min(regsum$bic) 
+plot(regfit, scale = "r2") 
+
+# Change # to best model
+vcov(regfit,2) 
+coef(regfit,3)
+
+#s_l2_na_per       LF_SLPD
+#s_l2_prop_mn fine_l1_skew      LF_SLPD 
+
+attach(train_vars)
+# put the selected predictor variables in the model after the "~" seperated by "+" and run the model
+lm1 <- lm(formula = train_pred$SubSev ~  h_ground_cnt   +  h_ng_vari    +  h_l2_cnt )
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+summary(lm1)
+r2(lm1) 
+rmse(lm1) 
+
+check_model(lm1)
+
+
+lm_out <- predict.lm(lm1, vars)
+data<-data.frame(x=lm_out, y=pred$SubSev)
+
+ggplot(data,aes(x,y)) +
+  geom_point() + geom_smooth(method='lm', se=FALSE,, color ="black" ) +theme_light() + scale_color_manual(values = nps_pal)+
+  labs(x='Predicted Values', y='Observed Values', title='Substrate Burn Severity') +
+  theme(plot.title = element_text(hjust=0.5, size=20, face='bold')) + theme_nps()
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Plot your model
+
+
+BS <- cbind(pred, data)
+BS <- BS %>% dplyr::select(c(x, y, MacroPlot.Name, MonStatus)) %>% 
+  mutate(burn = case_when(MacroPlot.Name %in% c("BME_RAP001", "BME_RAP003", "BME_RAP004", "BME_RAP006", "BME_RAP009", "BME_RAP010", "BME_RAP002") ~ "Fall2024",
+                          MacroPlot.Name %in% c("BME_RAP013", "BME_RAP015", "BME_RAP016", "BME_RAP014", "FPIPS1T02:08", "FPIPS1T02:16") ~ "Spring2025",
+                          MacroPlot.Name %in% c("FPIPS1T02:14", "FPIPS1T02:01", "FPIPS1T02:05", "FPIPS1T02:02", "FPIPO1T09:09", "FPIPO1T09:27") ~ "Fall2025"))
+
+BS <- BS %>% slice(-c(2,5))
+BS <- BS %>% pivot_longer(cols = c(x,y), names_to = "type", values_to = "value")
+BS <- BS %>% mutate(type = case_when(type == "x" ~ "Predicted", type == "y" ~ "Observed"))
+
+sum <- BS %>% group_by( burn, type ) %>% summarise(max = max(value), min = min(value), median = median(value), mean = mean(value), sd = sd(value)) %>% 
+  ungroup()
+
+sum$burn <- factor(sum$burn, levels = c("Fall2024", "Spring2025", "Fall2025"))
+
+ggplot(sum, aes(x = burn, y = mean, fill = type)) + geom_col(alpha = 0.8, position = position_dodge()) + geom_errorbar(aes(ymin = pmax(mean-sd, 0), ymax = mean + sd), position = position_dodge(width = 0.9), width = 0.3) + scale_fill_manual(values=nps_pal) + scale_y_continuous(breaks = c(1,2,3,4,5), labels = c("Heavily Burned", "Moderately Burned", "Lightly Burned", "Scorched", "Unburned")) + 
+  labs(title="Substrate Burn Severity", y="Avg. Burn Severity", fill = "Data Type") +theme_nps() +
+  theme(axis.text.x=element_text(angle=45,hjust=1), axis.text.y=element_text(angle=45,hjust=1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+3. Fuel Consumption
+```{r}
+
+library(tidyverse)
+library(leaps)
+library(performance)
+library(ggplot2)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pred <- read.csv("Data/tls models/rx_fuels_pred.csv")%>% dplyr::select(-1) %>% slice(-c(30))
+vars <- read.csv("Data/tls models/rx_fuels_vars.csv") %>% dplyr::select(-1)%>% slice(-c(30))
+
+
+# Run the following chunk so that the vars data is formatted correctly for modeling
+vars <- vars %>% mutate(across(where(is.character), as.factor)) %>% dplyr::select(where(~!is.factor(.) || nlevels(.) > 1)) %>% dplyr::select(where(~sum(is.na(.)) == 0))
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+set.seed(123)
+sample_size <- floor(0.1 * nrow(vars))
+test_indices <- sample(seq_len(nrow(vars)), size = sample_size)
+train_vars <- vars[-test_indices, ]
+test_vars <- vars[test_indices, ]
+train_pred <- pred[-test_indices, ]
+test_pred <- pred[test_indices, ]
+
+
+regfit = regsubsets(train_pred$TotalAll~., train_vars,  nvmax = 3 , method = "seqrep", really.big = T) 
+
+# Visual checks to see how many variables you should use
+regsum<- summary(regfit)
+plot(regsum$rsq, type = "l") 
+plot(regsum$rss, type = "l") 
+plot(regsum$bic, type = "l") 
+which.min(regsum$bic) 
+plot(regfit, scale = "r2") 
+
+# Change # to best model
+vcov(regfit,2) 
+coef(regfit,3)
+
+#s_l2_na_per       LF_SLPD
+#s_l2_prop_mn fine_l1_skew      LF_SLPD 
+
+attach(train_vars)
+# put the selected predictor variables in the model after the "~" seperated by "+" and run the model
+lm1 <- lm(formula = train_pred$TotalAll ~  s_l3_prop_ku   +  hr0_10_l1_tgi +hr100_1000_l1_tgi )
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+summary(lm1)
+r2(lm1) 
+rmse(lm1) 
+
+check_model(lm1)
+
+
+lm_out <- predict.lm(lm1, vars)
+data<-data.frame(x=lm_out, y=pred$TotalAll)
+
+ggplot(data,aes(x,y)) +
+  geom_point() + geom_smooth(method='lm', se=FALSE,, color ="black" ) +theme_light() + scale_color_manual(values = nps_pal)+
+  labs(x='Predicted Values', y='Observed Values', title='Total Fuel Load (tons/acre)') +
+  theme(plot.title = element_text(hjust=0.5, size=20, face='bold')) + theme_nps()
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Plot your model
+
+BS <- cbind(pred, data)
+BS <- BS %>% dplyr::select(c(x, y, Macroplot, MonStatus)) %>% 
+  mutate(burn = case_when(Macroplot %in% c("BME_RAP001", "BME_RAP003", "BME_RAP004", "BME_RAP006", "BME_RAP009", "BME_RAP010", "BME_RAP002") ~ "Fall 2024",
+                          Macroplot %in% c("BME_RAP013", "BME_RAP015", "BME_RAP016", "BME_RAP014", "FPIPS1T02:08", "FPIPS1T02:16") ~ "Spring 2025",
+                          Macroplot %in% c( "FPIPS1T02:01", "FPIPS1T02:05", "FPIPS1T02:02") ~ "BM Fall 2025",
+                          Macroplot %in% c("FPIPS1T02:14", "FPIPO1T09:09", "FPIPO1T09:27") ~ "HQ Fall 2025"))
+
+BS <- BS %>% mutate(MonStatus = case_when(grepl("PRE", MonStatus) ~ "PRE", 
+                                          grepl("POST", MonStatus) ~ "POST"))
+BS <- BS %>% pivot_longer(cols = c(x,y), names_to = "type", values_to = "value")
+BS <- BS %>% mutate(type = case_when(type == "x" ~ "Predicted", type == "y" ~ "Observed"))
+
+sum <- BS %>% group_by( burn, type, MonStatus ) %>% summarise(max = max(value), min = min(value), median = median(value), mean = mean(value), sd = sd(value)) %>% 
+  ungroup()
+
+sum$MonStatus <- factor(sum$MonStatus, levels = c("PRE", "POST"))
+sum$burn <- factor(sum$burn, levels = c("Fall 2024", "Spring 2025", "BM Fall 2025", "HQ Fall 2025"))
+
+
+
+ggplot(sum, aes(x = MonStatus, y = mean, fill = type)) + geom_col(alpha = 0.8, position = position_dodge()) + geom_errorbar(aes(ymin = pmax(mean-sd, 0), ymax = mean + sd), position = position_dodge(width = 0.9), width = 0.3) + facet_wrap(~burn, ncol = 1) + scale_fill_manual(values=nps_pal) + 
+  labs(title="Total Fuel Load", y="tons/acre", x = "Monitoring Status", fill = "Data Type") +theme_nps() +
+  theme(axis.text.x=element_text(angle=45,hjust=1), legend.position = "bottom")
+
+
+
+#########
+
+BS <- cbind(pred, data)
+BS <- BS %>% dplyr::select(c(x, y, Macroplot, MonStatus)) %>% 
+  mutate(burn = case_when(Macroplot %in% c("BME_RAP001", "BME_RAP003", "BME_RAP004", "BME_RAP006", "BME_RAP009", "BME_RAP010", "BME_RAP002") ~ "Fall2024",
+                          Macroplot %in% c("BME_RAP013", "BME_RAP015", "BME_RAP016", "BME_RAP014", "FPIPS1T02:08", "FPIPS1T02:16") ~ "Spring2025",
+                          Macroplot %in% c("FPIPS1T02:14", "FPIPS1T02:01", "FPIPS1T02:05", "FPIPS1T02:02", "FPIPO1T09:09", "FPIPO1T09:27") ~ "Fall2025"))
+BS <- BS %>% mutate(MonStatus = case_when(grepl("PRE", MonStatus) ~ "PRE", 
+                                          grepl("POST", MonStatus) ~ "POST"))
+
+
+BS <- BS %>% pivot_wider(id_cols = c(Macroplot, burn), names_from = MonStatus, values_from = c(x, y))
+BS <- BS %>% mutate(xchange = abs(((x_POST - x_PRE)/x_PRE)*100), ychange = abs(((y_POST - y_PRE)/y_PRE)*100))
+BS <- BS %>% slice(-c(8,16))
+BS <- BS %>% dplyr::select(c(Macroplot, burn, xchange, ychange)) %>% pivot_longer(cols = c(xchange, ychange), names_to = "Type", values_to = "PctChange")
+
+
+sum <- BS %>% group_by( burn, Type) %>% summarise(max = max(PctChange), min = min(PctChange), median = median(PctChange), mean = mean(PctChange), sd = sd(PctChange)) %>% 
+  ungroup()
+
+sum$burn <- factor(sum$burn, levels = c("Fall2024", "Spring2025", "Fall2025"))
+
+sum <- sum %>% mutate(Type = case_when(Type == "xchange" ~ "Predicted", Type == "ychange" ~ "Observed"))
+
+
+ggplot(sum, aes(x = burn, y = mean, fill = Type)) + geom_col(alpha = 0.8, position = position_dodge()) + geom_errorbar(aes(ymin = pmax(mean-sd, 0), ymax = mean + sd, ), position = position_dodge(width = 0.9), width = 0.3) +  scale_fill_manual(values=nps_pal) + 
+  labs(title="Fuel Reduction", y="Percent Fuel Reduction", x = "Burn", fill = "Data Type") +theme_nps() +
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+
+
+ggplot(BS, aes(x = burn, y = PctChange, fill = Type)) + geom_boxplot()
+
+
+```
 
 
 

@@ -1,0 +1,1680 @@
+---
+title: "NPS Surface Fuels Reporting for FMH Plots"
+author: "Nickolas Kichas"
+date: "2026-03-31"
+format: html
+server: shiny
+execute:
+  echo: false
+---
+
+## Purpose
+
+This reporting tool summarizes surface fuels data (1-hour, 10-hour, 100-hour, 1000-hour fuels, as well as litter and duff measurements) for fire effects monitoring plots.
+
+```{r}
+#| label: setup
+#| context: setup
+#| include: false
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#| label: install packages
+#| context: setup
+#| include: false
+
+# -------------------------------------- #
+# ---- Install Packages (if needed) ---- #
+# -------------------------------------- #
+
+# install.packages("boot")
+# install.packages("dplyr")
+# install.packages("DT")
+# install.packages("emmeans")
+# install.packages("flexdashboard")
+# install.packages("fs")
+# install.packages("ggplot2")
+# install.packages("ggrepel")
+# install.packages("here")
+# install.packages("htmltools")
+# install.packages("kableExtra") *******
+# install.packages("knitr")
+# install.packages("lubridate")
+# install.packages("multcomp") ***********
+# install.packages("multcompView") *******install
+# install.packages("patchwork")
+# install.packages("plotly")
+# install.packages("purrr")
+# install.packages("shiny")
+# install.packages("stringr")
+# install.packages("stringdist")
+# install.packages("tidyverse")
+```
+
+```{r}
+#| label: load packages
+#| context: setup
+#| include: false
+
+# ----------------------- #
+# ---- Load Packages ---- #
+# ----------------------- #
+
+library(boot)
+library(dplyr)
+library(DT)
+library(emmeans)
+library(fs)
+library(flexdashboard)
+library(ggplot2)
+library(ggrepel)
+library(here)
+library(htmltools)
+library(kableExtra)
+library(knitr)
+library(lubridate)
+library(multcomp)
+library(multcompView)
+library(patchwork)
+library(plotly)
+library(purrr)
+library(reactable)
+library(shiny)
+library(stringr)
+library(stringdist)
+library(tidyverse)
+```
+
+```{r}
+#| label: import data
+#| context: setup
+#| include: false
+
+# ------------------------------------ #
+# ---- Identify Working Directory ---- #
+# ------------------------------------ #
+
+wDir <- here("")
+```
+
+```{r}
+#| label: load data
+#| context: setup
+#| include: false
+
+# --------------------- #
+# ---- Import Data ---- #
+# --------------------- #
+
+# -------------------------- #
+# ---- 1-100-Hour Fuels ---- #
+# -------------------------- #
+
+  # ---- Optional function to hone in on problematic rows ---- #
+    #bad_lines <- read_lines("[CSV FILE]")
+    #which(grepl("\"", bad_lines) & !grepl("\".*\"", bad_lines))
+
+# ---- YELLOWSTONE DATA ---- #
+ROMO_fuels_fine <- read.csv("ROMO_Surface Fuels - Fine_XPT.csv")
+
+  
+  # Drop last column if it's an empty placeholder (common in Excel exports)
+  ROMO_fuels_fine <- ROMO_fuels_fine[, -ncol(ROMO_fuels_fine)]
+  
+  # Extract metadata rows (Visited == TRUE)
+  ROMO_fuels_fine_metadata <- ROMO_fuels_fine %>% filter(tolower(Visited) == "true")
+  
+  # Keep only observation rows (Visited empty or NA)
+  ROMO_fuels_fine <- ROMO_fuels_fine %>% filter(is.na(Visited) | Visited == "")
+
+
+###############################################################################
+
+# -------------------------- #
+# ---- 1,000-Hour Fuels ---- #
+# -------------------------- #
+
+
+# ---- ROCKY MOUNTAIN DATA ---- #
+  ROMO_fuels_thousands <- read.csv("ROMO_Surface Fuels - 1000Hr_XPT.csv") 
+  ROMO_fuels_thousands <- ROMO_fuels_thousands[, -ncol(ROMO_fuels_thousands)]
+  ROMO_fuels_thousands_metadata <- ROMO_fuels_thousands %>% filter(tolower(Visited) == "true")
+  ROMO_fuels_thousands <- ROMO_fuels_thousands %>% filter(is.na(Visited) | Visited == "")
+  
+############################################################################### 
+
+# ------------------------- #
+# ---- Litter and Duff ---- #
+# ------------------------- #
+
+
+# ---- ROCKY MOUNTAIN DATA ---- #
+ROMO_fuels_litterduff <- read.csv("ROMO_Surface Fuels - Duff_Litter_XPT.csv")
+  ROMO_fuels_litterduff <- ROMO_fuels_litterduff[, -ncol(ROMO_fuels_litterduff)]
+  ROMO_fuels_litterduff_metadata <- ROMO_fuels_litterduff %>% filter(tolower(Visited) == "true")
+  ROMO_fuels_litterduff <- ROMO_fuels_litterduff %>% filter(is.na(Visited) | Visited == "")
+```
+
+```{r}
+#| label: calculate fuel loads
+#| context: setup
+#| include: false
+
+# ------------------------------------------------------------- #
+# ---- Brown's Planar Intercept Fuel Transect Calculations ---- #
+# ------------------------------------------------------------- #
+
+# ------------------------------------- #
+# ---- Fine Fuels (1,10,100-Hours) ---- #
+# ------------------------------------- #
+
+# ---- Function to calculate 1-100-hr fuels for any park dataset ---- #
+calculate_ffl_fuels <- function(df, metadata) {
+  
+  # ---- Step 0: fuel constants ---- #
+  
+  d2_1hr <- 0.0151
+  d2_10hr <- 0.289
+  d2_100hr <- 2.76
+  s_1hr_10hr <- 0.48
+  s_100hr <- 0.40
+  a <- 1.13
+  
+  # ---- Step 1: Join df with metadata
+  df <- df %>% select(c(1:15))
+  metadata <- metadata %>% select(c(1:3, 16:26))
+  df <- df %>% left_join(metadata, join_by(MacroPlot.Name, Monitoring.Status, Date))
+  
+  # ---- Step 2: Ensure Date is proper datetime format ---- #
+  df <- df %>%
+    mutate(
+      Date = mdy_hms(Date),
+      Year = year(Date)
+    )
+  
+  
+  # ---- Step 3: Compute per-transect fuel load ---- #
+  transect_level <- df %>%
+    mutate(
+      c = sqrt(1 + (Slope / 100)^2),
+      OneHr_FuelLoad = (11.64 * OneHr * d2_1hr   * s_1hr_10hr * a * c) / OneHrTranLen,
+      TenHr_FuelLoad = (11.64 * TenHr * d2_10hr  * s_1hr_10hr * a * c) / TenHrTranLen,
+      HunHr_FuelLoad = (11.64 * HunHr * d2_100hr * s_100hr    * a * c) / HunHrTranLen,
+      FuelLoad = OneHr_FuelLoad + TenHr_FuelLoad + HunHr_FuelLoad
+    )
+
+  # ---- Step 4: KEEP TRANSECT-LEVEL DATA (do NOT summarise here) ---- #
+  plot_level_fine <- transect_level %>%
+    mutate(
+      Transect_ID = row_number()  # keeps unique transect within plot
+    )
+
+  # ---- Safety: add NAs for Monitoring Status to avoid join issues ----#
+  if (!"Monitoring.Status" %in% names(plot_level_fine)) {
+  plot_level_fine <- plot_level_fine %>%
+    mutate(`Monitoring.Status` = NA_character_)}
+  
+  return(plot_level_fine)
+}
+
+
+# ---- Apply function to each dataset and merge ---- #
+  ffl_summary <-calculate_ffl_fuels(ROMO_fuels_fine, ROMO_fuels_fine_metadata)
+
+
+################################################################################
+################################################################################
+################################################################################
+
+# -------------------------- #
+# ---- 1,000-Hour Fuels ---- #
+# -------------------------- #
+
+# ---- Function to calculate 1000-hr fuels for any park dataset ---- #
+calculate_coarse_fuels <- function(fuels_df, metadata_df) {
+
+  # ---- Step 0: fuel constants ---- #
+  a <- 1.0
+  s_sound <- 0.4
+  s_rotten <- 0.3
+  conversion_factor <- 11.64
+  
+  
+  # ---- Step 1: Join df and metadata ---- #
+  fuels_df <- fuels_df %>% select(c(1:14))
+  metadata_df <- metadata_df %>% select(c(1:3, 15:23))
+  
+  fuels_df <- fuels_df %>% left_join(metadata_df, join_by(MacroPlot.Name, Monitoring.Status, Date))
+
+  # ---- Step 2: Standardize Dates ---- #
+  fuels_df <- fuels_df %>%
+    mutate(Date = mdy_hms(Date),
+           Year = year(Date))
+
+  # ---- Step 3B: Extract observation rows ----- #
+  fuels_df <- fuels_df %>%
+    filter(!is.na(DecayCl), !is.na(Dia), !is.na(Transect))
+  
+
+  # ---- Step 3D: Ensure Transect is numeric BEFORE calculations ---- #
+  fuels_df <- fuels_df %>% mutate(
+    Transect = suppressWarnings(as.numeric(Transect))
+  )
+  
+  # ---- Step 4: Compute per-log contributions ---- #
+  fuels_processed <- fuels_df %>%
+    mutate(
+      Transect = suppressWarnings(as.numeric(Transect)),
+      DecayCl = suppressWarnings(as.numeric(DecayCl)),
+      Dia = suppressWarnings(as.numeric(Dia))
+    ) %>%
+    filter(DecayCl %in% c(3, 4)) %>%
+    mutate(
+      D2 = Dia^2,
+      s = if_else(DecayCl == 3, s_sound, s_rotten),
+      slope_correction = sqrt(1 + (Slope / 100)^2),
+      Load = (conversion_factor * D2 * s * a * slope_correction) / TranLen,
+      Load_Adjusted = Load / NumTran
+    )
+# ---- Step 5A: Create full grid of expected transects per plot/year ---- #
+  all_transects <- fuels_df %>%
+    distinct(across(all_of(c("MacroPlot.Name", "Monitoring.Status", "Date", "NumTran")))) %>%
+    mutate(NumTran = if_else(is.na(NumTran), 1L, as.integer(NumTran))) %>%
+    tidyr::uncount(weights = NumTran, .id = "Transect") %>%
+    mutate(Transect = suppressWarnings(as.numeric(Transect)))
+  
+  
+  # ---- Step 5B: Summarise computed loads (only where logs existed) ---- #
+
+  
+  loads_per_transect <- fuels_processed %>% 
+    group_by(Monitoring.Status, MacroPlot.Name, Date, Transect) %>% 
+    summarise(
+      Decay3_Load     = sum(Load[DecayCl == 3], na.rm = TRUE),
+      Decay4_Load     = sum(Load[DecayCl == 4], na.rm = TRUE),
+      Coarse_FuelLoad = sum(Load, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Transect = suppressWarnings(as.numeric(Transect)))
+  
+  # ---- Step 5C: Bring zeros back in for missing decay classes ---- #
+  fuel_by_transect <- all_transects %>%
+    left_join(loads_per_transect, by=c("MacroPlot.Name", "Monitoring.Status", "Date", "Transect")) %>%
+    mutate(
+      Decay3_Load     = replace_na(Decay3_Load, 0),
+      Decay4_Load     = replace_na(Decay4_Load, 0),
+      Coarse_FuelLoad = replace_na(Coarse_FuelLoad, 0)
+    )
+  
+  
+  
+  
+  
+  
+  # ---- Step 5B: Summarise computed loads (only where logs existed) ---- #
+  
+  loads_per_transect <- fuels_processed %>% 
+    group_by(MacroPlot.Name, Monitoring.Status, Date, Transect) %>% 
+    summarise(
+      Decay3_Load     = sum(Load[DecayCl == 3], na.rm = TRUE),
+      Decay4_Load     = sum(Load[DecayCl == 4], na.rm = TRUE),
+      Coarse_FuelLoad = sum(Load, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Transect = suppressWarnings(as.numeric(Transect)))
+  
+  # ---- Step 5C: Bring zeros back in for missing decay classes ---- #
+  fuel_by_transect <- all_transects %>%
+    left_join(loads_per_transect, by = c("MacroPlot.Name", "Monitoring.Status", "Date", "Transect")) %>%
+    mutate(
+      Decay3_Load     = replace_na(Decay3_Load, 0),
+      Decay4_Load     = replace_na(Decay4_Load, 0),
+      Coarse_FuelLoad = replace_na(Coarse_FuelLoad, 0)
+    )
+
+  # ---- Safety: add NAs for Monitoring Status to avoid join issues ----#
+  if (!"Monitoring.Status" %in% names(fuel_by_transect)) {
+  fuel_by_transect <- fuel_by_transect %>%
+    mutate(`Monitoring.Status` = NA_character_)}
+  
+  return(fuel_by_transect)
+}
+
+  
+  coarse_summary <- calculate_coarse_fuels(ROMO_fuels_thousands, ROMO_fuels_thousands_metadata)
+
+# ---- View merged summary ---- #
+  coarse_summary
+  
+################################################################################
+################################################################################
+################################################################################
+
+  
+
+# -------------------------------------- #  
+# ---- Litter and Duff Measurements ---- #
+# -------------------------------------- #
+
+# ---- Function to calculate litter and duff fuel loads ---- #
+calculate_litterduff <- function(fuels_df, metadata_df) {
+  
+  # ---- Step 0: litter/duff bulk density constants ---- #
+  litter_bd <- 2.75*1.815
+  duff_bd <- 5.5*1.815
+  
+  # ---- Step 1: merge metadata with data ---- # 
+  fuels_df <- fuels_df %>% select(c(1:12))
+  metadata_df <- metadata_df %>% select(c(1:3, 16:23))
+  
+  fuels_df <- fuels_df %>% left_join(metadata_df, by = c("MacroPlot.Name", "Monitoring.Status", "Date"))
+  
+  
+  # ---- Safety: check for DuffDep column ---- #
+  if (!"DuffDep" %in% names(fuels_df)) {
+    message("No DuffDep values found")
+    return(NULL)
+  }
+ 
+  
+  # ---- Step 2B: Standardize Dates ---- #
+  fuels_df <- fuels_df %>%
+    mutate(Date = mdy_hms(Date),
+           Year = year(Date))
+
+  
+
+  # ---- Step 3B: Extract observation rows ----- #
+  fuels_df <- fuels_df %>%
+    filter(!is.na(LittDep), !is.na(DuffDep), !is.na(Transect))
+  
+
+
+  # ---- Step 3D: Ensure Transect is numeric BEFORE calculations ---- #
+  fuels_df <- fuels_df %>% mutate(
+    Transect = suppressWarnings(as.numeric(Transect))
+  )
+  
+  # ---- Step 4: Transect-level averages ---- #
+  
+  transect_means <- fuels_df %>%
+    group_by(Date, Transect, NumTran, MacroPlot.Name, Monitoring.Status) %>%
+    summarise(
+      LittDep_tran = mean(LittDep, na.rm = TRUE),
+      DuffDep_tran = mean(DuffDep, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    filter(Transect <= NumTran) %>%   # keep only valid transects
+    mutate(
+      Litter_Fuel_tran = LittDep_tran * litter_bd,
+      Duff_Fuel_tran   = DuffDep_tran * duff_bd,
+      Total_Fuel_tran  = Litter_Fuel_tran + Duff_Fuel_tran
+    )
+  
+  
+  
+  # ---- Step 5: Plot-level averages ---- #
+  plot_means <- transect_means %>%
+    group_by(Date, MacroPlot.Name, Monitoring.Status) %>%
+    summarise(
+      Avg_LittDep = mean(LittDep_tran, na.rm = TRUE),
+      Avg_DuffDep = mean(DuffDep_tran, na.rm = TRUE),
+  
+      # ---- plot-level fuels ---- #
+      Litter_Fuel = mean(Litter_Fuel_tran, na.rm = TRUE),
+      Duff_Fuel   = mean(Duff_Fuel_tran, na.rm = TRUE),
+      Total_Fuel  = mean(Total_Fuel_tran, na.rm = TRUE),
+  
+      # ---- KEEP TRANSECT FUEL VALUES ---- #
+      Litter_Fuel_tran = list(Litter_Fuel_tran),
+      Duff_Fuel_tran   = list(Duff_Fuel_tran),
+      Total_Fuel_tran  = list(Total_Fuel_tran),
+  
+      .groups = "drop"
+  )
+}
+  
+
+# ---- Apply function  ---- #
+  litterduff_summary <- calculate_litterduff(ROMO_fuels_litterduff, ROMO_fuels_litterduff_metadata)
+
+# ---- View merged summary ---- #
+  litterduff_summary
+```
+
+```{r}
+#| label: combine dataframes
+#| context: setup
+#| include: false
+
+# ------------------------------------------------------------- #
+# ---- Join 1-100-hr, litter-duff, and 1,000-hr dataframes ---- #
+# ------------------------------------------------------------- #
+
+fuel_data_combined <- ffl_summary %>%
+  full_join(litterduff_summary, by = c("MacroPlot.Name", "Monitoring.Status", "Date")) %>%
+  full_join(coarse_summary, by = c("MacroPlot.Name", "Monitoring.Status", "Date", "Transect")) %>%
+  mutate(
+    Litter_Fuel = na_if(Litter_Fuel, NaN),
+    Duff_Fuel = na_if(Duff_Fuel, NaN),
+    across(
+      c(Decay3_Load, Decay4_Load, Coarse_FuelLoad),
+      ~ replace_na(., 0)
+))
+```
+
+```{r}
+#| label: input selector
+#| include: true
+#| echo: false
+
+# --------------------- #
+# ---- User Inputs ---- #
+# --------------------- #
+
+tags$div(
+  style = "margin-bottom: 25px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;",
+
+
+
+# ---- MacroPlot selector (dynamically populated by Site) ---- #
+uiOutput("macroplot_selector")
+
+)
+```
+
+```{r}
+#| label: reactive data
+#| context: server
+#| include: true
+#| echo: false
+
+# ----------------------------- #
+# ---- Dynamic UI Elements ---- #
+# ----------------------------- #
+
+server <- function(input, output, session) {
+
+  output$macroplot_selector <- renderUI({
+    
+    plots <- fuel_data_combined %>%
+      dplyr::distinct(`MacroPlot Name`) %>%
+      dplyr::arrange(`MacroPlot Name`) %>%
+      dplyr::pull(`MacroPlot Name`)
+    
+    selectInput(
+      inputId = "macroplot",
+      label = "Select MacroPlot:",
+      choices = plots,
+      selected = plots[1]
+    )
+  })
+
+  data_filtered <- reactive({
+    req(input$macroplot)
+
+    fuel_data_combined %>%
+      dplyr::filter(`MacroPlot Name` == input$macroplot)
+  })
+
+}
+```
+
+```{r}
+#| label: fuels tables
+#| context: server
+#| echo: false
+
+# -------------------------------------------------- #
+# ---- Tabular output for fine fuels (1-100-hr) ---- #
+# -------------------------------------------------- #
+fuel_summary_data <- reactive({
+  req(data_filtered())
+
+  df <- data_filtered() %>%
+  group_by(`Monitoring.Status`) %>%
+    summarise(
+      n_1hr  = sum(!is.na(OneHr_FuelLoad)),
+      Mean_1hr = mean(OneHr_FuelLoad, na.rm = TRUE),
+      SD_1hr = sd(OneHr_FuelLoad, na.rm = TRUE),
+
+      n_10hr = sum(!is.na(TenHr_FuelLoad)),
+      Mean_10hr = mean(TenHr_FuelLoad, na.rm = TRUE),
+      SD_10hr = sd(TenHr_FuelLoad, na.rm = TRUE),
+
+      n_100hr = sum(!is.na(HunHr_FuelLoad)),
+      Mean_100hr = mean(HunHr_FuelLoad, na.rm = TRUE),
+      SD_100hr  = sd(HunHr_FuelLoad, na.rm = TRUE),
+
+      n_total = sum(!is.na(FuelLoad)),
+      Mean_Total = mean(FuelLoad, na.rm = TRUE),
+      SD_Total = sd(FuelLoad, na.rm = TRUE),
+
+      Year = unique(Year)[1],
+      .groups = "drop"
+  ) %>%
+    mutate(
+      # ----------------------------------------------------- #
+      # ---- 80% confidence interval half-width = t * SE ---- #
+      # ----------------------------------------------------- #
+        # Step 1: Check sample size
+          # If you have more than one transect (n_1hr > 1), compute the CI.
+          # If not, return 0 because you can’t compute a CI with only one observation. 
+        
+        # Step 2: Compute the t-multiplier
+          # An 80% CI uses the 90th percentile of the t-distribution. 
+          # A two-sided CI: 10% total → 5% in each tail → 0.90 upper-tail quantile).
+          # qt(0.9, df = n_1hr - 1) gives the correct t value for an 80% CI.
+      
+        # Step 3: Compute standard error
+          # SD_1hr / sqrt(n_1hr)
+          # How much variation you'd expect in the mean.
+      
+        # Step 4: Multiply t × SE
+          # This gives the half-width of the 80% confidence interval.
+      
+      CI_1hr   = ifelse(n_1hr > 1, qt(0.9, df = n_1hr - 1) * (SD_1hr / sqrt(n_1hr)), 0),
+      CI_10hr  = ifelse(n_10hr > 1, qt(0.9, df = n_10hr - 1) * (SD_10hr / sqrt(n_10hr)), 0),
+      CI_100hr = ifelse(n_100hr > 1, qt(0.9, df = n_100hr - 1) * (SD_100hr / sqrt(n_100hr)), 0),
+      CI_Total = ifelse(n_total > 1, qt(0.9, df = n_total - 1) * (SD_Total / sqrt(n_total)), 0)
+    ) %>%
+    arrange(Year)
+
+  # ---- Compute % change relative to first monitoring status ---- #
+  df <- df %>%
+    mutate(
+      `% Change (1hr)` = ifelse(row_number() == 1, NA,
+          100 * (Mean_1hr - first(Mean_1hr)) / first(Mean_1hr)),
+      `% Change (10hr)` = ifelse(row_number() == 1, NA,
+          100 * (Mean_10hr - first(Mean_10hr)) / first(Mean_10hr)),
+      `% Change (100hr)` = ifelse(row_number() == 1, NA,
+          100 * (Mean_100hr - first(Mean_100hr)) / first(Mean_100hr)),
+      `% Change (Total)` = ifelse(row_number() == 1, NA,
+          100 * (Mean_Total - first(Mean_Total)) / first(Mean_Total))
+    ) %>%
+    mutate(across(where(is.numeric), ~ round(., 2)))  # Round all numeric values to 2 decimals
+  
+  df
+})
+
+# ------------------------------------------- #
+# ---- Helper function for table display ---- #
+# ------------------------------------------- #
+
+# ---- Render percent color change in tabular display ---- #
+render_summary_table <- function(data_reactive, mean_col, ci_col, pct_change_col) {
+  
+  dat <- data_reactive() %>%
+    select(
+      `Monitoring.Status`, Year,
+      !!sym(mean_col),
+      !!sym(ci_col),
+      !!sym(pct_change_col)
+    ) %>%
+    rename(
+      "Monitoring Status" = `Monitoring.Status`,
+      "Year" = Year,
+      "Tons per acre" = !!sym(mean_col),
+      "80% CI (+/-)" = !!sym(ci_col),
+      "% Change" = !!sym(pct_change_col)
+    ) %>%
+    mutate(
+      `80% CI (+/-)` = ifelse(is.na(`80% CI (+/-)`), "—", `80% CI (+/-)`),
+      `% Change` = ifelse(is.na(`% Change`), "—", `% Change`)
+    )
+  
+  datatable(
+    dat,
+    rownames = FALSE,
+    options = list(
+      pageLength = 10,
+      dom = "t",
+      ordering = FALSE,
+      columnDefs = list(
+        list(className = "dt-left", targets = "_all")
+      )
+    )
+  ) %>%
+    formatRound(
+      columns = c("Tons per acre", "80% CI (+/-)"),
+      digits = 2
+    ) %>%
+    formatStyle(
+      "% Change",
+      color = styleInterval(0, c("#228B22", "#B22222")),
+      fontWeight = "bold"
+    )
+}
+
+
+# ------------------------------------------------ #
+# ---- Helper function to build banner values ---- #
+# ------------------------------------------------ #
+build_fuel_banner <- function(data_reactive, total_col = "Mean_Total",
+                              fuel_name = "Fuel",
+                              low_cutoff, high_cutoff) {
+  
+  reactive({
+    req(data_reactive())
+    
+    df <- data_reactive()
+    validate(need(nrow(df) > 0, "No data available."))
+    
+    latest_row <- df %>%
+      arrange(desc(Year)) %>%
+      slice(1)
+    
+    total_value <- latest_row[[total_col]]
+    
+    category <- case_when(
+      total_value < low_cutoff ~ "Low",
+      total_value <= high_cutoff ~ "Moderate",
+      total_value > high_cutoff ~ "High",
+      TRUE ~ NA_character_
+    )
+    
+    box_fill <- case_when(
+      total_value < low_cutoff ~ "#2E8B57",      # green
+      total_value <= high_cutoff ~ "#FFD54F",    # yellow
+      total_value > high_cutoff ~ "#C62828",     # red
+      TRUE ~ "#BDBDBD"
+    )
+    
+    text_color <- case_when(
+      total_value >= low_cutoff & total_value <= high_cutoff ~ "#000000",
+      TRUE ~ "#FFFFFF"
+    )
+    
+    list(
+      fill = box_fill,
+      text = text_color,
+      label = paste0(fuel_name, ": ", category),
+      total = round(total_value, 2),
+      status = latest_row$`Monitoring Status`,
+      year = latest_row$Year,
+      fuel_name = fuel_name
+    )
+  })
+}
+
+# --------------------------------------------- #
+# ---- Helper function to render banner UI ---- #
+# --------------------------------------------- #
+render_fuel_banner_ui <- function(banner_reactive) {
+  renderUI({
+    b <- banner_reactive()
+    
+    tags$div(
+      style = paste0(
+        "background-color:", b$fill, ";",
+        "color:", b$text, ";",
+        "padding:14px 18px;",
+        "border-radius:8px;",
+        "font-weight:bold;",
+        "font-size:18px;",
+        "margin:20px 0 16px 0;",
+        "border:1px solid rgba(0,0,0,0.15);"
+      ),
+      HTML(
+        paste0(
+          "<div>", b$label, "</div>",
+          "<div style='font-size:14px; font-weight:normal; margin-top:4px;'>",
+          "Most recent status: ", b$status,
+          " (", b$year, ")",
+          " &mdash; Total ", b$fuel_name, " = ", b$total, " tons/acre",
+          "</div>"
+        )
+      )
+    )
+  })
+}
+
+
+# --------------------------------------- #
+# ---- Render banner and data tables ---- #
+# --------------------------------------- #
+
+# ---- Banner ---- #
+fine_fuels_banner <- build_fuel_banner(
+  data_reactive = fuel_summary_data,
+  total_col = "Mean_Total",
+  fuel_name = "Fine Fuels",
+  low_cutoff = 3, # Define low threshold
+  high_cutoff = 5 # Define high threshold
+)
+
+output$fine_fuels_status_box <- render_fuel_banner_ui(fine_fuels_banner)
+
+# ---- One-Hour Fuels ---- #
+output$fine_fuels_1hr <- renderDataTable({
+  df <- tryCatch(fuel_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(fuel_summary_data, "Mean_1hr", "CI_1hr", "% Change (1hr)")
+})
+
+# ---- Ten-Hour Fuels ---- #
+output$fine_fuels_10hr <- renderDataTable({
+  df <- tryCatch(fuel_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(fuel_summary_data, "Mean_10hr", "CI_10hr", "% Change (10hr)")
+})
+
+# ---- Hundred-Hour Fuels ---- #
+output$fine_fuels_100hr <- renderDataTable({
+  df <- tryCatch(fuel_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(fuel_summary_data, "Mean_100hr", "CI_100hr", "% Change (100hr)")
+})
+  
+# ---- Total Fine Fuels ---- # 
+output$fine_fuels_total <- renderDataTable({
+  df <- tryCatch(fuel_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(fuel_summary_data, "Mean_Total", "CI_Total", "% Change (Total)")
+})
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+# -------------------------------------------- #
+# ---- Tabular output for litter and duff ---- #
+# -------------------------------------------- #
+litterduff_summary_data <- reactive({
+  req(data_filtered())  
+
+  df <- data_filtered() %>%
+  mutate(
+    n_litter = map_int(Litter_Fuel_tran, ~ sum(!is.na(.x))),
+    n_duff   = map_int(Duff_Fuel_tran,   ~ sum(!is.na(.x))),
+    n_total  = map_int(Total_Fuel_tran,  ~ sum(!is.na(.x))),
+
+    SD_Litter = map_dbl(Litter_Fuel_tran, ~ sd(.x, na.rm = TRUE)),
+    SD_Duff   = map_dbl(Duff_Fuel_tran,   ~ sd(.x, na.rm = TRUE)),
+    SD_Total  = map_dbl(Total_Fuel_tran,  ~ sd(.x, na.rm = TRUE))
+  ) %>%
+  group_by(`Monitoring Status`) %>%
+  summarise(
+    n_litter = sum(n_litter),
+    n_duff   = sum(n_duff),
+    n_total  = sum(n_total),
+
+    Mean_Litter = mean(Litter_Fuel, na.rm = TRUE),
+    Mean_Duff   = mean(Duff_Fuel,   na.rm = TRUE),
+    Mean_Total  = mean(Total_Fuel,  na.rm = TRUE),
+
+    SD_Litter = mean(SD_Litter, na.rm = TRUE),
+    SD_Duff   = mean(SD_Duff,   na.rm = TRUE),
+    SD_Total  = mean(SD_Total,  na.rm = TRUE),
+
+    Year = unique(Year)[1],
+    .groups = "drop"
+  ) %>%
+    mutate(
+      # ----------------------------------------------------- #
+      # ---- 80% confidence interval half-width = t * SE ---- #
+      # ----------------------------------------------------- #
+      CI_Litter = ifelse(n_litter > 1,
+         qt(0.9, df = n_litter - 1) * (SD_Litter / sqrt(n_litter)), 0),
+
+      CI_Duff = ifelse(n_duff > 1,
+         qt(0.9, df = n_duff - 1) * (SD_Duff / sqrt(n_duff)), 0),
+
+      CI_Total = ifelse(n_total > 1,
+         qt(0.9, df = n_total - 1) * (SD_Total / sqrt(n_total)), 0)
+    ) %>%
+    arrange(Year)
+
+  # ---- Compute % change relative to first monitoring status ---- #
+  df <- df %>%
+    mutate(
+      `% Change (Litter)` = ifelse(row_number() == 1, NA,
+         100 * (Mean_Litter - first(Mean_Litter)) / first(Mean_Litter)),
+
+      `% Change (Duff)` = ifelse(row_number() == 1, NA,
+         100 * (Mean_Duff - first(Mean_Duff)) / first(Mean_Duff)),
+
+      `% Change (Total)` = ifelse(row_number() == 1, NA,
+         100 * (Mean_Total - first(Mean_Total)) / first(Mean_Total))
+    ) %>%
+    mutate(across(where(is.numeric), ~ round(., 2)))
+
+  df
+})
+
+
+# --------------------------------------- #
+# ---- Render banner and data tables ---- #
+# --------------------------------------- #
+
+# ---- Banner ---- #
+litter_duff_banner <- build_fuel_banner(
+  data_reactive = litterduff_summary_data,
+  total_col = "Mean_Total",
+  fuel_name = "Litter and Duff",
+  low_cutoff = 3,
+  high_cutoff = 5
+)
+
+output$litter_duff_status_box <- render_fuel_banner_ui(litter_duff_banner)
+
+# ---- Litter ---- #
+output$litterduff_table_litter <- renderDataTable({
+  df <- tryCatch(litterduff_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(litterduff_summary_data, "Mean_Litter", "CI_Litter", "% Change (Litter)")
+})
+
+# ---- Duff ---- #
+output$litterduff_table_duff <- renderDataTable({
+  df <- tryCatch(litterduff_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(litterduff_summary_data, "Mean_Duff", "CI_Duff", "% Change (Duff)")
+})
+
+# ---- Total (Litter + Duff) ---- #
+output$litterduff_table_total <- renderDataTable({
+  df <- tryCatch(litterduff_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(litterduff_summary_data, "Mean_Total", "CI_Total", "% Change (Total)")
+})
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+# ------------------------------------------- #
+# ---- Tabular output for 1,000-hr fuels ---- #
+# ------------------------------------------- #
+coarse_summary_data <- reactive({
+  req(data_filtered())
+
+  df <- data_filtered() %>%
+    group_by(`MacroPlot Name`, `Monitoring Status`, Year) %>%
+
+    summarise(
+      # ---- Decay Class 3 (Sound) ---- #
+        n_Decay3          = sum(!is.na(Decay3_Load)),   # ALL transects
+        tons_acre_Decay3  = mean(Decay3_Load, na.rm = TRUE),
+        sd_Decay3         = sd(Decay3_Load, na.rm = TRUE),
+          # 80% confidence interval
+          ci_80_Decay3      = ifelse(
+            n_Decay3 > 1,
+            qt(0.9, df = n_Decay3 - 1) * (sd_Decay3 / sqrt(n_Decay3)),
+            0
+          ),
+
+      # ---- Decay Class 4 (Rotten) ---- #
+        n_Decay4          = sum(!is.na(Decay4_Load)),
+        tons_acre_Decay4  = mean(Decay4_Load, na.rm = TRUE),
+        sd_Decay4         = sd(Decay4_Load, na.rm = TRUE),
+          # 80% confidence interval  
+          ci_80_Decay4      = ifelse(
+              n_Decay4 > 1,
+              qt(0.9, df = n_Decay4 - 1) * (sd_Decay4 / sqrt(n_Decay4)),
+              0
+            ),
+
+      # ---- TOTAL (Decay 3 + 4) ---- #
+        n_Total           = sum(!is.na(Coarse_FuelLoad)),
+        tons_acre_Total   = mean(Coarse_FuelLoad, na.rm = TRUE),
+        sd_Total          = sd(Coarse_FuelLoad, na.rm = TRUE),
+          # 80% confidence interval
+          ci_80_Total       = ifelse(
+            n_Total > 1,
+            qt(0.9, df = n_Total - 1) * (sd_Total / sqrt(n_Total)),
+            0
+          ),
+      
+        .groups = "drop"
+      ) %>%
+
+    # ---- Compute % change relative to first monitoring status ---- #
+    arrange(`MacroPlot Name`, Year) %>%
+    group_by(`MacroPlot Name`) %>%
+    mutate(
+      `% Change (Decay3)` = ifelse(
+        row_number() == 1 | is.na(tons_acre_Decay3),
+        NA,
+        100 * (tons_acre_Decay3 - first(tons_acre_Decay3)) / first(tons_acre_Decay3)
+      ),
+      `% Change (Decay4)` = ifelse(
+        row_number() == 1 | is.na(tons_acre_Decay4),
+        NA,
+        100 * (tons_acre_Decay4 - first(tons_acre_Decay4)) / first(tons_acre_Decay4)
+      ),
+      `% Change (Total)` = ifelse(
+        row_number() == 1 | is.na(tons_acre_Total),
+        NA,
+        100 * (tons_acre_Total - first(tons_acre_Total)) / first(tons_acre_Total)
+      )
+    ) %>%
+    ungroup() %>%
+    mutate(across(where(is.numeric), ~ round(., 2)))
+
+  df
+})
+
+
+# --------------------------------------- #
+# ---- Render banner and data tables ---- #
+# --------------------------------------- #
+
+# ---- Banner ---- #
+coarse_fuels_banner <- build_fuel_banner(
+  data_reactive = coarse_summary_data,
+  total_col = "tons_acre_Total",
+  fuel_name = "Coarse Fuels",
+  low_cutoff = 10,
+  high_cutoff = 20
+)
+
+output$coarse_fuels_status_box <- render_fuel_banner_ui(coarse_fuels_banner)
+
+output$coarse_fuels_status_box <- render_fuel_banner_ui(coarse_fuels_banner)
+
+# ---- Decay Class 3 (Sound) ---- #
+output$coarse_fuels_3 <- renderDataTable({
+  df <- tryCatch(coarse_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(coarse_summary_data, "tons_acre_Decay3", "ci_80_Decay3", "% Change (Decay3)")
+})
+
+# ---- Decay Class 4 (Rotten) ---- #
+output$coarse_fuels_4 <- renderDataTable({
+  df <- tryCatch(coarse_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(coarse_summary_data, "tons_acre_Decay4", "ci_80_Decay4", "% Change (Decay4)")
+})
+
+# ---- Total (Decay Class 3 + 4) ---- #
+output$coarse_fuels_total <- renderDataTable({
+  df <- tryCatch(coarse_summary_data(), error = function(e) NULL)
+  validate(need(!is.null(df), "No data available for this selection."))
+  render_summary_table(coarse_summary_data, "tons_acre_Total", "ci_80_Total", "% Change (Total)")
+})
+```  
+
+```{r}
+#| label: fuels-tables-ui
+#| echo: false
+
+# ------------------------- #
+# ---- Display Banners ---- #
+# ------------------------- #
+  
+# ---- Fine Fuels status box ---- #
+uiOutput("fine_fuels_status_box")
+
+# ---- Litter and duff status box ---- #
+uiOutput("litter_duff_status_box")
+
+# ---- Coarse fuels status box ---- #
+uiOutput("coarse_fuels_status_box") 
+
+
+# ----------------------------------- #
+# ---- Display fine fuels tables ---- #
+# ----------------------------------- #
+
+tags$h3("Fine Fuels Summary (1-100 Hour Fuels)", style = "color: orange;")
+
+# ---- One-Hour Fuels ---- #
+tags$h4("1-Hour Fuels", style = "color: orange;")
+dataTableOutput("fine_fuels_1hr")
+
+# ---- Ten-Hour Fuels ---- #
+tags$h4("10-Hour Fuels", style = "color: orange;")
+dataTableOutput("fine_fuels_10hr")
+
+# ---- Hundred-Hour Fuels ---- #
+tags$h4("100-Hour Fuels", style = "color: orange;")
+dataTableOutput("fine_fuels_100hr")
+
+# ---- Total Fine Fuels ---- # 
+tags$h4("Total Fine Fuels (1-100 Hour)", style = "color: orange;")
+dataTableOutput("fine_fuels_total")
+
+
+# ---------------------------------------- #
+# ---- Display litter and duff tables ---- #
+# ---------------------------------------- #
+
+tags$h3("Litter and Duff Fuels Summary", style = "color: green;")
+
+# ---- Litter ---- #
+tags$h4("Litter Fuel Loads", style = "color: green;")
+dataTableOutput("litterduff_table_litter")
+
+# ---- Duff ---- #
+tags$h4("Duff Fuel Loads", style = "color: green;")
+dataTableOutput("litterduff_table_duff")
+
+# ---- Total (Litter + Duff) ---- #
+tags$h4("Total Litter + Duff Fuel Loads", style = "color: green;")
+dataTableOutput("litterduff_table_total")
+
+
+# -------------------------------------- #
+# ---- Display 1,000-hr fuel tables ---- #
+# -------------------------------------- #
+
+tags$h3("Coarse Fuels Summary (1,000 Hour Fuels)", style = "color: blue;")
+
+# ---- Decay Class 3 (Sound) ---- #
+tags$h4("Decay Class 3 (Sound)", style = "color: blue;")
+dataTableOutput("coarse_fuels_3")
+
+# ---- Decay Class 4 (Rotten) ---- #
+tags$h4("Decay Class 4 (Rotten)", style = "color: blue;")
+dataTableOutput("coarse_fuels_4")
+
+# ---- Total (Decay Class 3 + 4) ---- #
+tags$h4("Total Coarse Fuels (1,000 Hour)", style = "color: blue;")
+dataTableOutput("coarse_fuels_total")
+```
+
+
+```{r}
+#| label: clean status function
+#| context: setup
+#| include: false
+
+# -------------------------------------------- #
+# ---- Clean Status Function for Barplots ---- #
+# -------------------------------------------- #
+
+clean_status <- function(x) {
+  x %>%
+    trimws() %>%                 # remove leading/trailing whitespace
+    gsub("\\s+", "", .) %>%      # remove internal weird spacing
+    iconv(to = "ASCII//TRANSLIT")  # remove non-ASCII / invisible chars
+}
+```
+
+```{r}
+#| label: nonparametric stats helper  
+#| context: server
+#| include: false
+
+# ----------------------------------------------------- #
+# ---- Helper function to compute Dunn/KW letters  ---- #
+# ----------------------------------------------------- #
+
+get_dunn_letters <- function(df_raw) {
+
+  # Expect df_raw to contain MonitoringStatus and Total_Surface
+
+  df <- df_raw %>%
+    filter(!is.na(Total_Surface)) %>%
+    mutate(
+      MonitoringStatus = clean_status(as.character(MonitoringStatus)),
+      MonitoringStatus = factor(MonitoringStatus)
+    )
+
+  # Need ≥ 2 groups with replication
+  if (n_distinct(df$MonitoringStatus) < 2) return(NULL)
+  if (nrow(df) <= n_distinct(df$MonitoringStatus)) return(NULL)
+
+  # Kruskal–Wallis
+  kw <- kruskal.test(Total_Surface ~ MonitoringStatus, data = df)
+
+  # Dunn post-hoc (Holm)
+  dunn_tbl <- tryCatch({
+    FSA::dunnTest(
+      Total_Surface ~ MonitoringStatus,
+      data   = df,
+      method = "holm"
+    )$res
+  }, error = function(e) NULL)
+
+  # If Dunn fails OR KW not significant → all "a"
+  if (is.null(dunn_tbl) || kw$p.value > 0.05) {
+    return(tibble(
+      MonitoringStatus = levels(df$MonitoringStatus),
+      letters          = rep("a", length(levels(df$MonitoringStatus))),
+      KW_p             = kw$p.value
+    ))
+  }
+
+  # Clean comparison names “A - B”
+  clean_comp <- function(x) {
+    parts <- strsplit(x, "-")[[1]]
+    parts <- clean_status(trimws(parts))
+    paste(parts, collapse = "-")
+  }
+
+  pvals <- dunn_tbl$P.adj
+  names(pvals) <- sapply(dunn_tbl$Comparison, clean_comp)
+
+  letters_vec <- multcompView::multcompLetters(pvals)$Letters
+
+  tibble(
+    MonitoringStatus = clean_status(names(letters_vec)),
+    letters          = unname(letters_vec),
+    KW_p             = kw$p.value
+  )
+}
+```
+
+```{r}
+#| label: KW letters helper
+#| context: setup
+#| include: false
+
+# ------------------------------------------------------- #
+# ---- Helper to add letters + KW annotation to plot ---- #
+# ------------------------------------------------------- #
+add_kw_letters_to_plot <- function(p, df_summarized, letters_df) {
+
+  # If we truly don't have letters (not enough groups), just return p
+  if (is.null(letters_df) || nrow(letters_df) == 0) {
+    return(p)
+  }
+
+  # Compute stack heights
+  df_stack <- df_summarized %>%
+    mutate(
+      MonitoringStatus = clean_status(as.character(MonitoringStatus)),
+      stack_height     = Fine_Fuel + Litter_Fuel + Coarse_Fuel
+    )
+
+  # Clean letters table and join
+  letters_df_clean <- letters_df %>%
+    mutate(MonitoringStatus = clean_status(as.character(MonitoringStatus)))
+
+  df_stack <- df_stack %>%
+    left_join(letters_df_clean, by = "MonitoringStatus")
+
+  # Replace any missing letters with "a"
+  df_stack$letters[is.na(df_stack$letters)] <- "a"
+
+  # Position for letters above bars
+  df_stack <- df_stack %>%
+    mutate(
+      label_y = stack_height + 0.05 * max(stack_height, na.rm = TRUE)
+    )
+
+  # Safe annotation coordinates (rightmost bar, slightly above max)
+  x_pos <- length(unique(df_stack$MonitoringStatus))
+  y_pos <- max(df_stack$stack_height, na.rm = TRUE) * 1.12
+
+  p +
+    geom_text(
+      data        = df_stack,
+      aes(x = MonitoringStatus, y = label_y, label = letters),
+      inherit.aes = FALSE,
+      size        = 8,
+      fontface    = "bold",
+      color       = "red"
+    ) +
+    annotate(
+      "text",
+      x     = x_pos,
+      y     = y_pos,
+      label = paste0("Kruskal–Wallis p = ",
+                     signif(letters_df$KW_p[1], 3)),
+      hjust = 1,
+      vjust = 0,
+      size  = 8
+    )
+}
+```
+
+```{r}
+#| labe: fuel load barplot
+#| context: server
+#| echo: false
+
+# ---------------------------------------------- #
+# ---- Render barplot for all surface fuels ---- #
+# ---------------------------------------------- #
+output$fuel_barplot <- renderPlotly({
+
+  df_raw <- tryCatch(data_filtered(), error = function(e) NULL)
+  validate(need(!is.null(df_raw), "No data to display."))
+
+  # ---- Prep transect-level data ---- #
+  df_raw <- df_raw %>%
+    rename(MonitoringStatus = `Monitoring Status`) %>%
+    mutate(
+      Fine_Fuel     = FuelLoad,
+      Litter_Fuel   = Total_Fuel,
+      Coarse_Fuel   = Coarse_FuelLoad,
+      Total_Surface = Fine_Fuel + Litter_Fuel + Coarse_Fuel
+    ) %>%
+    arrange(Year) %>%
+    mutate(MonitoringStatus = factor(MonitoringStatus,
+                                     levels = unique(MonitoringStatus)))
+
+  # ---- Nonparametric letters (KW + Dunn) ---- #
+  letters_df <- get_dunn_letters(df_raw)
+
+  # ---- Summarize fuel loads for stacked bars ---- #
+  df_summarized <- df_raw %>%
+    group_by(MonitoringStatus) %>%
+    summarise(
+      Fine_Fuel   = mean(Fine_Fuel,   na.rm = TRUE),
+      Litter_Fuel = mean(Litter_Fuel, na.rm = TRUE),
+      Coarse_Fuel = mean(Coarse_Fuel, na.rm = TRUE),
+      Year        = first(Year),
+      .groups     = "drop"
+    ) %>%
+    arrange(Year)
+
+  # ---- Pivot long to bar plot format ---- #
+  df_long <- df_summarized %>%
+    pivot_longer(
+      cols      = c(Fine_Fuel, Litter_Fuel, Coarse_Fuel),
+      names_to  = "Fuel_Type",
+      values_to = "FuelValue"
+    ) %>%
+    mutate(
+      Fuel_Type = recode(
+        Fuel_Type,
+        "Fine_Fuel"   = "1–100 hr",
+        "Litter_Fuel" = "Litter & Duff",
+        "Coarse_Fuel" = "1000 hr"
+      ),
+      Fuel_Type = factor(Fuel_Type,
+                         levels = c("Litter & Duff", "1–100 hr", "1000 hr"))
+    )
+
+  # ---- Base ggplot ---- #
+  p <- ggplot(df_long,
+              aes(x = MonitoringStatus, y = FuelValue, fill = Fuel_Type)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = c(
+      "Litter & Duff" = "#e09f3e",
+      "1–100 hr"      = "#fff3b0",
+      "1000 hr"       = "#335c67"
+    )) +
+    labs(
+      x    = "Monitoring Status",
+      y    = "Fuel Load (tons/acre)",
+      fill = "Fuel Component"
+    ) +
+    theme_minimal(base_size = 24) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  # ---- Add letters + KW annotation via helper ---- #
+  p <- add_kw_letters_to_plot(p, df_summarized, letters_df)
+
+  ggplotly(p, tooltip = c("x", "y", "fill"))
+})
+```
+
+```{r}
+#| label: download handler for fuel load barplot
+#| context: server
+#| echo: false
+
+# ---------------------------------------------- #
+# ---- Download handler for high-res ggplot ---- #
+# ---------------------------------------------- #
+output$download_fuel_barplot <- downloadHandler(
+  filename = function() {
+    paste0("fuel_barplot_", Sys.Date(), ".png")
+  },
+  content = function(file) {
+
+    df_raw <- data_filtered() %>%
+      rename(MonitoringStatus = `Monitoring Status`) %>%
+      mutate(
+        Fine_Fuel     = FuelLoad,
+        Litter_Fuel   = Total_Fuel,
+        Coarse_Fuel   = Coarse_FuelLoad,
+        Total_Surface = Fine_Fuel + Litter_Fuel + Coarse_Fuel
+      ) %>%
+      arrange(Year) %>%
+      mutate(MonitoringStatus = factor(MonitoringStatus,
+                                       levels = unique(MonitoringStatus)))
+
+    # ---- Letters (KW + Dunn) ---- #
+    letters_df <- get_dunn_letters(df_raw)
+
+    df_summarized <- df_raw %>%
+      group_by(MonitoringStatus) %>%
+      summarise(
+        Fine_Fuel   = mean(Fine_Fuel,   na.rm = TRUE),
+        Litter_Fuel = mean(Litter_Fuel, na.rm = TRUE),
+        Coarse_Fuel = mean(Coarse_Fuel, na.rm = TRUE),
+        .groups     = "drop"
+      )
+
+    df_long <- df_summarized %>%
+      pivot_longer(
+        cols      = c(Fine_Fuel, Litter_Fuel, Coarse_Fuel),
+        names_to  = "Fuel_Type",
+        values_to = "FuelValue"
+      ) %>%
+      mutate(
+        Fuel_Type = recode(
+          Fuel_Type,
+          "Fine_Fuel"   = "1–100 hr",
+          "Litter_Fuel" = "Litter & Duff",
+          "Coarse_Fuel" = "1000 hr"
+        ),
+        Fuel_Type = factor(Fuel_Type,
+                           levels = c("Litter & Duff", "1–100 hr", "1000 hr"))
+      )
+
+    p <- ggplot(df_long,
+                aes(x = MonitoringStatus, y = FuelValue, fill = Fuel_Type)) +
+      geom_bar(stat = "identity") +
+      scale_fill_manual(values = c(
+        "Litter & Duff" = "#e09f3e",
+        "1–100 hr"      = "#fff3b0",
+        "1000 hr"       = "#335c67"
+      )) +
+      labs(
+        x    = "Monitoring Status",
+        y    = "Fuel Load (tons/acre)",
+        fill = "Fuel Component"
+      ) +
+      theme_minimal(base_size = 24) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+    # Add letters + KW annotation
+    p <- add_kw_letters_to_plot(p, df_summarized, letters_df)
+
+    ggsave(file, p, width = 12, height = 8, dpi = 300)
+  }
+)
+```
+
+```{r display barplot, include=TRUE, echo=FALSE}
+
+# ----------------------------------------------- #
+# ---- Display fuel load barplot (all fuels) ---- #
+# ----------------------------------------------- #
+
+tags$h3("Fuel Load Barplot", style = "color: purple;")
+
+tags$div(
+  style = "margin-bottom: 25px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;",
+  
+plotlyOutput("fuel_barplot"),
+downloadButton("download_fuel_barplot", "Download Plot")
+
+)
+```
+
+```{r}
+#| label: nonparametric stats helper coarse
+#| context: setup
+#| include: false
+
+# ------------------------------------------------------ #
+# ---- Helper: Kruskal–Wallis + Dunn (Holm) letters ---- #
+# ------------------------------------------------------ #
+get_kw_dunn_letters <- function(df) {
+
+  # Expect df to contain:
+  #   MonitoringStatus (factor)
+  #   Coarse_FuelLoad (numeric)
+
+  df_clean <- df %>%
+    filter(!is.na(Coarse_FuelLoad)) %>%
+    mutate(MonitoringStatus = factor(MonitoringStatus))
+
+  # Must have ≥2 groups
+  if (n_distinct(df_clean$MonitoringStatus) < 2) return(NULL)
+
+  # Must have true replication
+  if (nrow(df_clean) <= n_distinct(df_clean$MonitoringStatus)) return(NULL)
+
+  # ---- Kruskal–Wallis ---- #
+  kw <- kruskal.test(Coarse_FuelLoad ~ MonitoringStatus, data = df_clean)
+
+  # ---- Dunn test (Holm) ---- #
+  dunn_tbl <- tryCatch({
+    FSA::dunnTest(
+      Coarse_FuelLoad ~ MonitoringStatus,
+      data = df_clean,
+      method = "holm"
+    )$res
+  }, error = function(e) NULL)
+
+  # ---- If Dunn failed OR no pairwise sig → all “a” ---- #
+  if (is.null(dunn_tbl)) {
+    return(tibble(
+      MonitoringStatus = levels(df_clean$MonitoringStatus),
+      letters = rep("a", length(levels(df_clean$MonitoringStatus))),
+      KW_p = kw$p.value
+    ))
+  }
+
+  # ---- Clean comparison names like “A - B” ---- #
+  clean_comp <- function(x) {
+    parts <- trimws(strsplit(x, "-")[[1]])
+    paste(parts, collapse = "-")
+  }
+
+  pvals <- dunn_tbl$P.adj
+  names(pvals) <- sapply(dunn_tbl$Comparison, clean_comp)
+
+  letters <- multcompView::multcompLetters(pvals)$Letters
+
+  tibble(
+    MonitoringStatus = names(letters),
+    letters = unname(letters),
+    KW_p = kw$p.value
+  )
+}
+```
+
+```{r}
+#| label: boxplot comparison
+#| context: server
+#| echo: false
+
+# ------------------------------------------------------ #
+# ---- Render boxplot comparison for 1,000-hr fuels ---- #
+# ------------------------------------------------------ #
+output$interactive_boxplot <- renderPlotly({
+  df <- data_filtered()
+
+  req(all(c("Coarse_FuelLoad","Decay3_Load","Decay4_Load","Monitoring Status") %in% names(df)))
+
+  df <- df %>%
+    rename(MonitoringStatus = `Monitoring Status`) %>%
+    filter(!is.na(Coarse_FuelLoad)) %>%
+    arrange(Year) %>%
+    mutate(MonitoringStatus = factor(MonitoringStatus, levels = unique(MonitoringStatus)))
+
+  if (n_distinct(df$MonitoringStatus) < 2) {
+    showNotification("Not enough groups for statistical comparison", type = "warning")
+    return(NULL)
+  }
+
+  # ---- Compute KW + Dunn Letters ---- #
+  letters_df <- get_kw_dunn_letters(df)
+
+  # ---- Long format for decay classes ---- #
+  decay_long <- df %>%
+    pivot_longer(
+      cols = c(Decay3_Load, Decay4_Load),
+      names_to = "DecayClass",
+      values_to = "DecayFuelLoad"
+    ) %>%
+    filter(!is.na(DecayFuelLoad)) %>%
+    mutate(DecayClass = recode(
+      DecayClass,
+      "Decay3_Load" = "Decay Class 3",
+      "Decay4_Load" = "Decay Class 4"
+    ))
+
+  # ---- Compute letter positions ---- #
+  df_letters <- df %>%
+    group_by(MonitoringStatus) %>%
+    summarise(max_y = max(Coarse_FuelLoad, na.rm = TRUE), .groups = "drop")
+
+  # ---- If letters missing, assign “a” ---- #
+  if (is.null(letters_df)) {
+    letters_df <- tibble(
+      MonitoringStatus = levels(df$MonitoringStatus),
+      letters = rep("a", length(levels(df$MonitoringStatus))),
+      KW_p = NA_real_
+    )
+  }
+
+  df_letters <- df_letters %>%
+    left_join(letters_df, by = "MonitoringStatus") %>%
+    mutate(
+      letters = ifelse(is.na(letters), "a", letters),
+      label_y = max_y + 0.10 * max(df$Coarse_FuelLoad, na.rm = TRUE)
+    )
+
+  # ---- Build ggplot ---- #
+  p <- ggplot(df, aes(x = MonitoringStatus, y = Coarse_FuelLoad)) +
+    geom_boxplot(outlier.shape = NA, fill = "gray90", color = "black") +
+    geom_jitter(
+      data = decay_long,
+      aes(x = MonitoringStatus, y = DecayFuelLoad, color = DecayClass),
+      width = 0.2, size = 3, alpha = 0.7
+    ) +
+    geom_text(
+      data = df_letters,
+      aes(x = MonitoringStatus, y = label_y, label = letters),
+      color = "red", size = 8, fontface = "bold"
+    ) +
+    annotate(
+      "text",
+      x = length(levels(df$MonitoringStatus)),
+      y = max(df$Coarse_FuelLoad, na.rm = TRUE) * 1.12,
+      label = paste0("Kruskal–Wallis p = ",
+                     signif(df_letters$KW_p[1], 3)),
+      hjust = 1,
+      vjust = 0,
+      size = 8
+    ) +
+    #geom_hline(yintercept = 10, linetype = "dashed") +
+    scale_color_manual(
+      name = "Decay Class",
+      values = c("Decay Class 3" = "#1b9e77", "Decay Class 4" = "#4575b4")
+    ) +
+    labs(
+      x = "Monitoring Status",
+      y = "1000-hr Fuel Load (tons/acre)"
+    ) +
+    theme_minimal(base_size = 24) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  ggplotly(p, tooltip = c("x", "y", "color")) %>%
+    layout(margin = list(t = 50))
+})
+```
+
+```{r}
+#| label: download handler coarse
+#| context: server
+#| echo: false
+
+# ---------------------------------------------- #
+# ---- Download handler for high-res ggplot ---- #
+# ---------------------------------------------- #
+output$download_boxplot <- downloadHandler(
+  filename = function() {
+    paste0("1000hr_fuel_boxplot_", Sys.Date(), ".png")
+  },
+  content = function(file) {
+
+    df <- data_filtered() %>%
+      rename(MonitoringStatus = `Monitoring Status`) %>%
+      filter(!is.na(Coarse_FuelLoad)) %>%
+      arrange(Year) %>%
+      mutate(MonitoringStatus = factor(MonitoringStatus,
+                                       levels = unique(MonitoringStatus)))
+
+    letters_df <- get_kw_dunn_letters(df)
+
+    if (is.null(letters_df)) {
+      letters_df <- tibble(
+        MonitoringStatus = levels(df$MonitoringStatus),
+        letters = rep("a", length(levels(df$MonitoringStatus))),
+        KW_p = NA_real_
+      )
+    }
+
+    df_letters <- df %>%
+      group_by(MonitoringStatus) %>%
+      summarise(max_y = max(Coarse_FuelLoad, na.rm = TRUE), .groups = "drop") %>%
+      left_join(letters_df, by = "MonitoringStatus") %>%
+      mutate(
+        letters = ifelse(is.na(letters), "a", letters),
+        label_y = max_y + 0.10 * max(df$Coarse_FuelLoad, na.rm = TRUE)
+      )
+
+    decay_long <- df %>%
+      pivot_longer(
+        cols = c(Decay3_Load, Decay4_Load),
+        names_to = "DecayClass",
+        values_to = "DecayFuelLoad"
+      ) %>%
+      filter(!is.na(DecayFuelLoad)) %>%
+      mutate(DecayClass = recode(
+        DecayClass,
+        "Decay3_Load" = "Decay Class 3",
+        "Decay4_Load" = "Decay Class 4"
+      ))
+
+    p <- ggplot(df, aes(x = MonitoringStatus, y = Coarse_FuelLoad)) +
+      geom_boxplot(outlier.shape = NA, fill = "gray90", color = "black") +
+      geom_jitter(
+        data = decay_long,
+        aes(x = MonitoringStatus, y = DecayFuelLoad, color = DecayClass),
+        width = 0.2, size = 5, alpha = 0.7
+      ) +
+      geom_text(
+        data = df_letters,
+        aes(x = MonitoringStatus, y = label_y, label = letters),
+        color = "red", size = 8, fontface = "bold"
+      ) +
+      annotate(
+        "text",
+        x = length(levels(df$MonitoringStatus)),
+        y = max(df$Coarse_FuelLoad, na.rm = TRUE) * 1.12,
+        label = paste0("Kruskal–Wallis p = ",
+                       signif(df_letters$KW_p[1], 3)),
+        hjust = 1,
+        vjust = 0,
+        size = 8
+      ) +
+      #geom_hline(yintercept = 10, linetype = "dashed") +
+      scale_color_manual(
+        name = "Decay Class",
+        values = c("Decay Class 3"="#1b9e77", "Decay Class 4"="#4575b4")
+      ) +
+      labs(
+        x = "Monitoring Status",
+        y = "1000-hr Fuel Load (tons/acre)"
+      ) +
+      theme_minimal(base_size = 24) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+    ggsave(file, plot = p, width = 12, height = 7, dpi = 300)
+  }
+)
+```
+
+```{r display boxplot, include=TRUE, echo=FALSE}
+
+# -------------------------------------------- #
+# ---- Display boxplot for 1,000-hr fuels ---- #
+# -------------------------------------------- #
+
+tags$h3("1,000 Hour Fuel Loads Plot", style = "color: purple;")
+
+tags$div(
+  style = "margin-bottom: 25px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;",
+
+plotlyOutput("interactive_boxplot"),
+downloadButton("download_boxplot", "Download Plot")
+
+)
+```

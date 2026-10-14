@@ -1,0 +1,10 @@
+name: romofx
+title:
+username: cormpfireeffects
+account: cormpfireeffects
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 17103965
+bundleId:
+url: https://cormpfireeffects.shinyapps.io/romofx/
+version: 1
