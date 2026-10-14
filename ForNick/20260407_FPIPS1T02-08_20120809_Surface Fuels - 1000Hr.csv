@@ -1,8 +1,0 @@
-Report Date,MacroPlot Name,Sample Event Date,Visited,Num. Transects,Tran. Length,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
-2026/04/07,FPIPS1T02:08,2012/08/09,True,4,100,"MM, KT, SSC",JAJ,,,,,,,,
-
-Report Date,MacroPlot Name,Sample Event Date,Transect,Slope,Log No.,Diameter,Decay Class,CWDFuConSt,Comment
-2026/04/07,FPIPS1T02:08,2012/08/09,1,1,,5.2,4,Default,
-2026/04/07,FPIPS1T02:08,2012/08/09,2,3,,3,3,Default,
-2026/04/07,FPIPS1T02:08,2012/08/09,2,3,,5,3,Default,
-2026/04/07,FPIPS1T02:08,2012/08/09,2,3,,4.8,4,Default,

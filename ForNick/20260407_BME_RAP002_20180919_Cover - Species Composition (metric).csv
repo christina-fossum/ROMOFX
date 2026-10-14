@@ -1,9 +1,0 @@
-Report Date,MacroPlot Name,Sample Event Date,Visited,Min. Cov. Level,Plot Area,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
-2026/04/07,BME_RAP002,2018/09/19,True,,0.031,CMK DMG,CMK,,,,,,,,
-
-Report Date,MacroPlot Name,Sample Event Date,Item Code,Status,Cover,Comment
-2026/04/07,BME_RAP002,2018/09/19,HERB,L,37.5,
-2026/04/07,BME_RAP002,2018/09/19,SHRUB,L,62.5,
-2026/04/07,BME_RAP002,2018/09/19,BRTE,L,62.5,
-2026/04/07,BME_RAP002,2018/09/19,SIAL2,L,2.5,
-2026/04/07,BME_RAP002,2018/09/19,LECA5,L,2.5,

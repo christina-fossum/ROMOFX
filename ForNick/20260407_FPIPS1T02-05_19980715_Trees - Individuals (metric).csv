@@ -1,7 +1,0 @@
-Report Date,MacroPlot Name,Sample Event Date,Visited,Plot Area,Snag Plot Area,Break Pnt. Dia.,Collected By,Entered/Verif. By,UV1 Description,UV2 Description,UV3 Description,Comment,SampleData_CreatedBy,SampleData_CreatedDate,SampleData_ModifiedBy,SampleData_ModifiedDate
-2026/04/07,FPIPS1T02:05,1998/07/15,True,0.1,0.1,15,,,,,,,,,,
-
-Report Date,MacroPlot Name,Sample Event Date,Subplot Frac.,Quarter,Tag Num.,UV1,Species,Status,Crown Class,DBH,Height,UV2,Live Crown Base Ht.,UV3,Comment,Is Verified,Damage 1,Damage 2,Damage 3,Damage 4,Damage 5,Char Ht.,Scorch Ht.,Crown Scorch %
-2026/04/07,FPIPS1T02:05,1998/07/15,1,4,1,,PIPO,L,D,87.8,,,, overq4_all,FMH TREEOVER 1067,Yes,LIGT,,,,,,,
-2026/04/07,FPIPS1T02:05,1998/07/15,1,4,2,,PIPO,L,C,34.9,,,, overq4_all,FMH TREEOVER 1067,Yes,LIGT,INSE,,,,,,
-2026/04/07,FPIPS1T02:05,1998/07/15,1,4,3,,PIPO,L,C,59.2,,,, overq4_all,FMH TREEOVER 1067,Yes,,,,,,,,
